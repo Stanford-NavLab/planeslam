@@ -16,6 +16,7 @@ def vector_projection(a, b):
         Vector to project onto
     
     Returns
+    -------
     np.array 
         Projected vector
     
