@@ -5,6 +5,25 @@
 import numpy as np
 
 
+def vector_projection(a, b):
+    """Computes the vector projection of a onto b
+
+    Parameters
+    ----------
+    a : np.array (n_dim x 1)
+        Vector to project
+    b : np.array (n_dim x 1)
+        Vector to project onto
+    
+    Returns
+    np.array 
+        Projected vector
+    
+    """
+    b_ = b / np.linalg.norm(b)
+    return np.dot(a, b_) * b_
+
+
 def project_points_to_plane(P, n):
     """Project points onto the plane defined by normal vector
 
