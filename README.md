@@ -1,5 +1,7 @@
 # planeslam
 
+LiDAR-based Simultaneous Localization and Mapping using Plane Features and Maps
+
 ## Setup
 Clone the GitHub repository:
 
