@@ -77,6 +77,23 @@ def downsample(arr, factor, axis):
         return arr[:,::factor]
 
 
+def normalize(v):
+    """Normalize numpy vector
+
+    Parameters
+    ----------
+    v : np.array 
+        Vector to normalize
+
+    Returns
+    -------
+    np.array 
+        Normalized vector
+
+    """
+    return v / np.linalg.norm(v)
+
+
 
 
 
