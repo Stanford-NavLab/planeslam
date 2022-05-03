@@ -70,3 +70,32 @@ def rot_mat_from_vecs(u, v):
     ndim = len(u)
     w = u + v
     return 2 * w @ w.T / (w.T @ w) - np.eye(ndim)  # Rodrigues's rotation formula
+
+
+def plane_to_plane_dist(plane_1, normal_1, plane_2, normal_2):
+    """Plane-to-Plane distance
+    
+    Shortest distance between two (rectangularly bounded) planes. Computed
+    by taking the centroid to centroid vector, and projecting it along the
+    average normal of the two planes, and taking the norm of the projected
+    vector. Meant for planes with close normals.
+
+    Parameters
+    ----------
+    plane_1 : np.array (4 x 3)
+        Rectangularly bounded plane represented by 4 vertices
+    plane_2 : np.array (4 x 3)
+        Rectangularly bounded plane represented by 4 vertices
+    
+    Returns
+    -------
+    float
+        Plane-to-plane distance
+    
+    """
+    centroid_1 = np.mean(plane_1, axis=0)
+    centroid_2 = np.mean(plane_2, axis=0)
+    c2c_vector = centroid_1 - centroid_2  # NOTE: may be issue with c2c_vector pointing opposite to avg_normal
+    avg_normal = (normal_1 + normal_2) / 2
+    return np.linalg.norm(vector_projection(c2c_vector, avg_normal))
+

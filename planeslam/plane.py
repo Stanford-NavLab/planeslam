@@ -1,6 +1,6 @@
-"""ScanRep class and utilities
+"""BoundedPlane class and utilities
 
-This module defines the ScanRep class and relevant utilities.
+This module defines the BoundedPlane class and relevant utilities.
 
 """
 
@@ -11,55 +11,34 @@ import planeslam.general as general
 import planeslam.mesh as mesh
 
 
-class ScanRep:
-    """Scan Representation class.
+class BoundedPlane:
+    """Bounded Plane class.
 
-    This class represents a processed 3D LiDAR point cloud scan, in which the scan is stored
-    as a set of vertices and faces.
+    This class represents a rectangularly bounded plane, represented by 4 coplanar 
+    vertices which form a rectangle. 
 
     Attributes
     ----------
-    vertices : np.array (n_verts x 3)
-        Ordered array of vertices in scan
-    faces : list of lists
-        Sets of 4 vertex indices which form a face
+    vertices : np.array (4 x 3)
+        Ordered array of vertices 
     
     Methods
     -------
     plot()
 
     """
-    vertices = []
-    faces = []
 
-    def __init__(self, vertices, faces, normals=None):
-        """Construct scan object
+    def __init__(self, vertices):
+        """Construct plane
         
         Parameters
         ----------
-        center : np.array (3 x 1)
-            Point at which scan is centered at (i.e. LiDAR pose position)
-        orientation : 
-            Orientation at which scan was taken at (i.e. LiDAR pose orientation)
-        vertices : np.array (n_verts x 3)
-            Ordered array of vertices in scan
-        faces : list of lists
-            Sets of 4 vertex indices which form a face, ordered CCW with respect to scan center
-        normals : np.array (n_faces x 3 x 1)
-            Set of normal vectors for each face
+        vertices : np.array (4 x 3)
+            Ordered array of vertices 
 
         """
         self.vertices = vertices
-        self.faces = faces
-
-        if normals is not None:
-            self.normals = normals
-        else:
-            pass
-            print("Computing normals not yet implemented")
-            # Compute normals, if not given
-            # Assumes vertex indicies for each face are given in CCW order (i.e. normal pointing "in" towards LiDAR)
-            #self.normals 
+        
 
 
     def transform(self, R, t):

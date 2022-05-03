@@ -120,8 +120,8 @@ def cluster_mesh_graph_search(P, mesh, normal_match_thresh=0.17, min_cluster_siz
     """
     # Compute surface normals
     T = P[mesh.simplices]
-    U = T[:,1,:] - T[:,0,:]
-    V = T[:,2,:] - T[:,0,:]
+    U = T[:,2,:] - T[:,0,:]
+    V = T[:,1,:] - T[:,0,:]
     normals = np.cross(U,V)
     normals /= np.linalg.norm(normals, axis=1)[:,None]
 
@@ -266,7 +266,7 @@ def bd_plane_from_pts(pts, n):
     return plane_pts
 
 
-def scan_from_clusters(P, mesh, clusters, avg_normals, vertex_merge_thresh=1):
+def scan_from_clusters(P, mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
     """Convert clustered points to network of planes
 
     Parameters
