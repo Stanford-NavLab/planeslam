@@ -3,6 +3,8 @@
 LiDAR-based Simultaneous Localization and Mapping using Plane Features and Maps
 
 ## Setup
+For Windows, may not work on other OSes.
+
 Clone the GitHub repository:
 
     git clone https://github.com/adamdai/planeslam.git
