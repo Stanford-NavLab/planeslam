@@ -5,6 +5,8 @@
 import numpy as np
 
 import planeslam.geometry as geometry
+from planeslam.plane import BoundedPlane
+from planeslam.clustering import sort_mesh_clusters, mesh_cluster_pts
 
 
 def bd_plane_from_pts(pts, n):
@@ -55,7 +57,7 @@ def bd_plane_from_pts(pts, n):
                 else: # y normal
                     plane_pts[:,ax] = np.array([min[i], max[i], max[i], min[i]])  # Case 1
         else:  # Second coordinate
-            plane_pts[:,ax] = np.array([min[i], min[i], max[i], max[i]])
+            plane_pts[:,ax] = np.array([min[i], min[i], max[i], max[i]])  # Case 3
 
     # Project back to original normal plane
     plane_pts = geometry.project_points_to_plane(plane_pts, n)
@@ -92,25 +94,21 @@ def scan_from_clusters(P, mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
     # TODO: merge planes which are inside other planes into each other
 
     vertices = []
-    faces = []  # sets of 4 vertex indices
+    faces = []  # Sets of 4 vertex indices
     normals = []
     vertex_counter = 0
 
     # Sort clusters from largest to smallest
-    cluster_sort_idx = np.argsort([-len(c) for c in clusters])
-    clusters[:] = [clusters[i] for i in cluster_sort_idx]
-    avg_normals[:] = [avg_normals[i] for i in cluster_sort_idx]
+    clusters, avg_normals = sort_mesh_clusters(clusters, avg_normals)
 
-    for cluster_idx in range(len(clusters)):  
-        c = clusters[cluster_idx]
-        n = avg_normals[cluster_idx][:,None]
-        cluster_pts_idxs = np.unique(mesh.simplices[c,:]) 
-        cluster_pts = P[cluster_pts_idxs,:]
+    for i, c in enumerate(clusters):  
+        n = avg_normals[i][:,None]
+        cluster_pts = mesh_cluster_pts(mesh, c)  # Extract points from cluster
+
         # Extract bounding plane
         plane_pts = bd_plane_from_pts(cluster_pts, n)
-
-        new_face = 4*[None]
-        keep_mask = 4*[True]
+        new_face = 4 * [None]  # New face indices
+        keep_mask = 4 * [True]  # Which of the new plane points to keep (i.e. not reused)
         
         # Check if this plane shares any vertices with previous planes
         for i in range(len(vertices)):
@@ -120,6 +118,7 @@ def scan_from_clusters(P, mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
                 new_face[best_match] = i
                 keep_mask[best_match] = False
         
+        # Set new face indices
         for i in range(4):
             if new_face[i] is None:
                 new_face[i] = vertex_counter
@@ -163,7 +162,7 @@ def scan_from_pcl_clusters(P, clusters, normals_arr, vertex_merge_thresh=1.0):
     # TODO: merge planes which are inside other planes into each other
 
     vertices = []
-    faces = []  # sets of 4 vertex indices
+    faces = []  # Sets of 4 vertex indices
     normals = []
     vertex_counter = 0
 
@@ -177,8 +176,8 @@ def scan_from_pcl_clusters(P, clusters, normals_arr, vertex_merge_thresh=1.0):
         # Extract bounding plane
         plane_pts = bd_plane_from_pts(cluster_pts, n)
 
-        new_face = 4*[None]
-        keep_mask = 4*[True]
+        new_face = 4 * [None]
+        keep_mask = 4 * [True]
         
         # Check if this plane shares any vertices with previous planes
         for i in range(len(vertices)):
@@ -202,3 +201,43 @@ def scan_from_pcl_clusters(P, clusters, normals_arr, vertex_merge_thresh=1.0):
     normals = np.asarray(normals)
     
     return vertices, faces, normals
+
+
+def planes_from_clusters(P, mesh, clusters, avg_normals):
+    """Convert clustered points to a set of planes
+
+    Parameters
+    ----------
+    P : np.array (n_pts x 3)
+        Point cloud points
+    mesh : scipy.spatial.Delaunay
+        Mesh data structure
+    clusters : list of lists
+        Point indices grouped into clusters (based on surface normals and locality)
+    avg_normals : list of np.array (3 x 1)
+        Average normal vector for each cluster of points
+    vertex_merge_thresh : float
+        Distance between vertices in order to merge them
+
+    Returns
+    -------
+    planes : list of BoundedPlanes
+        List of planes
+
+    """
+    planes = []
+
+    # Sort clusters from largest to smallest
+    clusters, avg_normals = sort_mesh_clusters(clusters, avg_normals)
+
+    for i, c in enumerate(clusters):  
+        n = avg_normals[i][:,None]
+        cluster_pts = mesh_cluster_pts(mesh, c)  # Extract points from cluster
+        
+        # Extract bounding plane
+        plane_pts = bd_plane_from_pts(cluster_pts, n)
+
+        bplane = BoundedPlane(plane_pts)
+        planes.append(bplane)
+    
+    return planes

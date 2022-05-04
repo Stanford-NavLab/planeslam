@@ -7,7 +7,6 @@ This module defines the BoundedPlane class and relevant utilities.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from planeslam.geometry import project_points_to_plane
 from planeslam.general import normalize
 
 
@@ -34,33 +33,8 @@ class BoundedPlane:
 
     """
 
-    def __init__(self, *args):
+    def __init__(self, vertices):
         """Constructor
-        
-        Parameters
-        ----------
-        vertices : np.array (4 x 3)
-            Ordered array of vertices 
-
-        OR
-
-        pts : np.array (n_pts x 3)
-            Set of points
-        n : np.array (3 x 1)
-            Normal vector 
-
-        """
-        nargs = len(args)
-        if nargs == 1:
-            self.from_vertices(*args)
-        elif nargs == 2:
-            self.from_points(*args)
-        else:
-            print("Invalid number of arguments for BoundedPlane constructor")
-
-
-    def from_vertices(self, vertices):
-        """Construct plane from vertices
         
         Parameters
         ----------
@@ -79,45 +53,6 @@ class BoundedPlane:
 
         self.normal = basis_z[:,None]  # Normal is z
         self.center = np.mean(vertices, axis=0)
-
-    def from_points(self, pts, n):
-        """Construct plane from (clustered) points and normal
-        
-        Parameters
-        ----------
-        pts : np.array (n_pts x 3)
-            Set of points
-        n : np.array (3 x 1)
-            Normal vector 
-
-        """
-        plane_pts = np.empty((4,3))
-
-        # Project to nearest cardinal plane to find bounding box points
-        plane_idx = np.argsort(np.linalg.norm(np.eye(3) - np.abs(n), axis=0))[0]
-        plane = np.eye(3)[:,plane_idx][:,None]
-        pts_proj = project_points_to_plane(pts, plane)
-
-        # Find 2D bounding box of points within plane
-        # This should order the points counterclockwise starting from (-,-) point
-        # TODO: store points as CW or CCW depending on direction of normal
-        idx_count = 0
-        for k in range(3):
-            if k == plane_idx:
-                plane_pts[:,k] = pts_proj[0,plane_idx]
-            else:
-                min = np.amin(pts_proj[:,k])
-                max = np.amax(pts_proj[:,k])
-                if idx_count == 0:
-                    plane_pts[:,k] = np.array([min, max, max, min])
-                elif idx_count == 1:
-                    plane_pts[:,k] = np.array([min, min, max, max])
-                idx_count += 1
-
-        # Project back to original normal plane
-        plane_pts = project_points_to_plane(plane_pts, n)
-        
-        return plane_pts
         
 
     def transform(self, R, t):
