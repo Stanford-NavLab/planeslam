@@ -8,8 +8,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import planeslam.general as general
-import planeslam.mesh as mesh
+from planeslam.mesh import LidarMesh
 from planeslam.extraction import scan_from_clusters
+from planeslam.clustering import cluster_mesh_graph_search
 
 
 class ScanRep:
@@ -121,13 +122,13 @@ def pc_to_scan(P):
     # Downsample
     P = general.downsample(P, factor=5, axis=0)
 
-    # Generate mesh
-    m = mesh.lidar_mesh(P)
-    # Prune the mesh for long edges
-    m = mesh.prune_mesh(P, m, 10)
+    # Create the mesh
+    mesh = LidarMesh(P)
+    # Prune the mesh
+    mesh.prune(10)
     # Cluster the mesh with graph search
-    clusters, avg_normals = mesh.cluster_mesh_graph_search(P, m)
+    clusters, avg_normals = cluster_mesh_graph_search(mesh)
 
     # Form scan topology
-    vertices, faces, normals = scan_from_clusters(P, m, clusters, avg_normals)
+    vertices, faces, normals = scan_from_clusters(mesh, clusters, avg_normals)
     return ScanRep(vertices, faces, normals)

@@ -132,7 +132,7 @@ def sort_mesh_clusters(clusters, normals=None, reverse=True):
         return clusters
 
     
-def mesh_clusters_pts(mesh, cluster):
+def mesh_cluster_pts(mesh, cluster):
     """Get associated points for a mesh triangle cluster
 
     Parameters

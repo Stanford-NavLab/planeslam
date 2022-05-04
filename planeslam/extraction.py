@@ -65,15 +65,13 @@ def bd_plane_from_pts(pts, n):
     return plane_pts
 
 
-def scan_from_clusters(P, mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
+def scan_from_clusters(mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
     """Convert clustered points to network of planes
 
     Parameters
     ----------
-    P : np.array (n_pts x 3)
-        Point cloud points
-    mesh : scipy.spatial.Delaunay
-        Mesh data structure
+    mesh : LidarMesh
+        Mesh object for clusters
     clusters : list of lists
         Point indices grouped into clusters (based on surface normals and locality)
     avg_normals : list of np.array (3 x 1)
@@ -203,15 +201,13 @@ def scan_from_pcl_clusters(P, clusters, normals_arr, vertex_merge_thresh=1.0):
     return vertices, faces, normals
 
 
-def planes_from_clusters(P, mesh, clusters, avg_normals):
+def planes_from_clusters(mesh, clusters, avg_normals):
     """Convert clustered points to a set of planes
 
     Parameters
     ----------
-    P : np.array (n_pts x 3)
-        Point cloud points
-    mesh : scipy.spatial.Delaunay
-        Mesh data structure
+    mesh : LidarMesh
+        Mesh object for clusters
     clusters : list of lists
         Point indices grouped into clusters (based on surface normals and locality)
     avg_normals : list of np.array (3 x 1)
