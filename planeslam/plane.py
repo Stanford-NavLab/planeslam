@@ -34,7 +34,32 @@ class BoundedPlane:
 
     """
 
-    def __init__(self, vertices):
+    def __init__(self, *args):
+        """Constructor
+        
+        Parameters
+        ----------
+        vertices : np.array (4 x 3)
+            Ordered array of vertices 
+
+        OR
+
+        pts : np.array (n_pts x 3)
+            Set of points
+        n : np.array (3 x 1)
+            Normal vector 
+
+        """
+        nargs = len(args)
+        if nargs == 1:
+            self.from_vertices(*args)
+        elif nargs == 2:
+            self.from_points(*args)
+        else:
+            print("Invalid number of arguments for BoundedPlane constructor")
+
+
+    def from_vertices(self, vertices):
         """Construct plane from vertices
         
         Parameters
@@ -55,8 +80,7 @@ class BoundedPlane:
         self.normal = basis_z[:,None]  # Normal is z
         self.center = np.mean(vertices, axis=0)
 
-
-    def __init__(self, pts, n):
+    def from_points(self, pts, n):
         """Construct plane from (clustered) points and normal
         
         Parameters

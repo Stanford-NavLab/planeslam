@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 import planeslam.general as general
 import planeslam.mesh as mesh
+from planeslam.extraction import scan_from_clusters
 
 
 class ScanRep:
@@ -128,5 +129,5 @@ def pc_to_scan(P):
     clusters, avg_normals = mesh.cluster_mesh_graph_search(P, m)
 
     # Form scan topology
-    vertices, faces, normals = mesh.scan_from_clusters(P, m, clusters, avg_normals)
+    vertices, faces, normals = scan_from_clusters(P, m, clusters, avg_normals)
     return ScanRep(vertices, faces, normals)

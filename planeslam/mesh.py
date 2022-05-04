@@ -82,16 +82,18 @@ def prune_mesh(P, mesh, edge_len_lim):
 
     # Update other fields of tri data stucture
     mesh.equations = mesh.equations[keep_idx_mask]
-    mesh.neighbors = mesh.neighbors[keep_idx_mask]
+    
     # Remap indices for neighbors
     full_idxs = np.arange(len(keep_idx_mask))
     keep_idxs = full_idxs[keep_idx_mask]
     discard_idxs = full_idxs[~keep_idx_mask]
     if len(keep_idxs) < len(keep_idx_mask):
+        # NOTE: some reason this breaks when we transform to ENU??
         # Remap discard idxs to -1
         mesh.neighbors = general.remap(mesh.neighbors, discard_idxs, -np.ones(len(discard_idxs)))
         # Remap keep idxs to start at 0
         mesh.neighbors = general.remap(mesh.neighbors, keep_idxs, np.arange(len(keep_idxs)))
+    mesh.neighbors = mesh.neighbors[keep_idx_mask]
 
     return mesh
 
