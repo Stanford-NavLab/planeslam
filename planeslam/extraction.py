@@ -35,61 +35,12 @@ def bd_plane_from_pts(pts, n):
 
     # Find 2D bounding box of points within plane
     # Orders points counterclockwise with respect to the normal (i.e. right hand rule)
-    
     plane_pts[:,plane_idx] = pts_proj[0,plane_idx]
-
-    # if n[plane_idx] > 0:  # Positively oriented normal
-    #     if plane_idx == 0:  # x normal
-    #         ymin = np.amin(pts_proj[:,1])
-    #         zmin = np.amin(pts_proj[:,2])
-    #         ymax = np.amax(pts_proj[:,1])
-    #         zmax = np.amax(pts_proj[:,2])
-    #         plane_pts[:,1] = np.array([ymin, ymax, ymax, ymin]) 
-    #         plane_pts[:,2] = np.array([zmin, zmin, zmax, zmax])
-    #     elif plane_idx == 1:  # y normal
-    #         xmin = np.amin(pts_proj[:,0])
-    #         zmin = np.amin(pts_proj[:,2])
-    #         xmax = np.amax(pts_proj[:,0])
-    #         zmax = np.amax(pts_proj[:,2])
-    #         plane_pts[:,0] = np.array([xmax, xmin, xmin, xmax]) 
-    #         plane_pts[:,2] = np.array([zmin, zmin, zmax, zmax])
-    #     else:  # z normal
-    #         xmin = np.amin(pts_proj[:,0])
-    #         ymin = np.amin(pts_proj[:,1])
-    #         xmax = np.amax(pts_proj[:,0])
-    #         ymax = np.amax(pts_proj[:,1])
-    #         plane_pts[:,0] = np.array([xmin, xmax, xmax, xmin]) 
-    #         plane_pts[:,1] = np.array([ymin, ymin, ymax, ymax])
-    # else:  # Negatively oriented normal
-    #     if plane_idx == 0:  # x normal
-    #         ymin = np.amin(pts_proj[:,1])
-    #         zmin = np.amin(pts_proj[:,2])
-    #         ymax = np.amax(pts_proj[:,1])
-    #         zmax = np.amax(pts_proj[:,2])
-    #         plane_pts[:,1] = np.array([ymax, ymin, ymin, ymax])  # only this column is inverted 
-    #         plane_pts[:,2] = np.array([zmin, zmin, zmax, zmax])
-    #     elif plane_idx == 1:  # y normal
-    #         xmin = np.amin(pts_proj[:,0])
-    #         zmin = np.amin(pts_proj[:,2])
-    #         xmax = np.amax(pts_proj[:,0])
-    #         zmax = np.amax(pts_proj[:,2])
-    #         plane_pts[:,0] = np.array([xmin, xmax, xmax, xmin]) 
-    #         plane_pts[:,2] = np.array([zmin, zmin, zmax, zmax])
-    #     else:  # z normal
-    #         xmin = np.amin(pts_proj[:,0])
-    #         ymin = np.amin(pts_proj[:,1])
-    #         xmax = np.amax(pts_proj[:,0])
-    #         ymax = np.amax(pts_proj[:,1])
-    #         plane_pts[:,0] = np.array([xmax, xmin, xmin, xmax]) 
-    #         plane_pts[:,1] = np.array([ymin, ymin, ymax, ymax])
-
     axes = {0,1,2}  # x,y,z
     axes.remove(plane_idx)
     axes = list(axes)
     min = np.amin(pts_proj[:,axes], axis=0)
     max = np.amax(pts_proj[:,axes], axis=0)
-    print("min ", min)
-    print("max ", max)
 
     for i, ax in enumerate(axes):
         if i == 0:  # First coordinate
@@ -105,25 +56,6 @@ def bd_plane_from_pts(pts, n):
                     plane_pts[:,ax] = np.array([min[i], max[i], max[i], min[i]])  # Case 1
         else:  # Second coordinate
             plane_pts[:,ax] = np.array([min[i], min[i], max[i], max[i]])
-
-    # idx_count = 0
-    # for k in range(3):
-    #     if k == plane_idx:
-    #         plane_pts[:,k] = pts_proj[0,plane_idx]
-    #     else:
-    #         min = np.amin(pts_proj[:,k])
-    #         max = np.amax(pts_proj[:,k])
-    #         if n[plane_idx] > 0:
-    #             if idx_count == 0:
-    #                 plane_pts[:,k] = np.array([min, max, max, min])
-    #             elif idx_count == 1:
-    #                 plane_pts[:,k] = np.array([min, min, max, max])
-    #         else:
-    #             if idx_count == 0:
-    #                 plane_pts[:,k] = np.array([max, min, min, max])
-    #             elif idx_count == 1:
-    #                 plane_pts[:,k] = np.array([min, min, max, max])
-    #         idx_count += 1
 
     # Project back to original normal plane
     plane_pts = geometry.project_points_to_plane(plane_pts, n)
