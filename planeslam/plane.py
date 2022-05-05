@@ -7,7 +7,9 @@ This module defines the BoundedPlane class and relevant utilities.
 import numpy as np
 import matplotlib.pyplot as plt
 
+from planeslam.geometry import vector_projection
 from planeslam.general import normalize
+from planeslam.box import Box
 
 
 class BoundedPlane:
@@ -67,10 +69,32 @@ class BoundedPlane:
         
         """
         self.vertices = (R @ self.vertices.T).T + t
-        # TODO: transform basis and normal
-        self.normal = R @ self.normal
         self.basis = R @ self.basis  # NOTE: is this right?
-        self.center += t
+        self.normal = self.basis[:,2][:,None]
+        self.center = R @ self.center + t
+
+    
+    def to_2D(self):
+        """Projection of a 3D plane to 2D
+        
+        Compute projection of a (rectangularly bounded) plane that exists in 3D  
+        into its 2D subspace based on its basis vectors.
+
+        Returns
+        -------
+        box_2D : Box
+            2D box 
+        z : float
+            Z coordinate of box
+
+        """
+        # Change basis to plane's basis
+        A = np.linalg.inv(self.basis)
+        V = (A @ self.vertices.T).T
+        V_2D = V[:,0:2]
+        box_2D = Box(np.amin(V_2D, axis=0), np.amax(V_2D, axis=0))
+        z = V[0,2]
+        return box_2D, z
     
 
     def plot(self, ax=None, color='b', show_normal=False):
@@ -96,3 +120,35 @@ class BoundedPlane:
             c = self.center
             n = 10 * self.normal  # TODO: quiver scaling is currently arbitrary
             ax.quiver(c[0], c[1], c[2], n[0], n[1], n[2], color=color)
+            # Plot basis
+            x = 10 * self.basis[:,0]
+            y = 10 * self.basis[:,1]
+            ax.quiver(c[0], c[1], c[2], x[0], x[1], x[2], color=color)
+            ax.quiver(c[0], c[1], c[2], y[0], y[1], y[2], color=color)
+
+        
+    
+def plane_to_plane_dist(plane_1, plane_2):
+    """Plane-to-Plane distance
+    
+    Shortest distance between two (rectangularly bounded) planes. Computed
+    by taking the centroid to centroid vector, and projecting it along the
+    average normal of the two planes, and taking the norm of the projected
+    vector. Meant for planes with close normals.
+
+    Parameters
+    ----------
+    plane_1 : BoundedPlane
+        Rectangularly bounded plane represented by 4 vertices
+    plane_2 : BoundedPlane
+        Rectangularly bounded plane represented by 4 vertices
+    
+    Returns
+    -------
+    float
+        Plane-to-plane distance
+    
+    """
+    c2c_vector = plane_1.center - plane_2.center  # NOTE: may be issue with c2c_vector pointing opposite to avg_normal
+    avg_normal = (plane_1.normal + plane_2.normal) / 2
+    return np.linalg.norm(vector_projection(c2c_vector, avg_normal))
