@@ -7,11 +7,6 @@ This module defines the ScanRep class and relevant utilities.
 import numpy as np
 import matplotlib.pyplot as plt
 
-import planeslam.general as general
-from planeslam.mesh import LidarMesh
-from planeslam.extraction import scan_from_clusters
-from planeslam.clustering import cluster_mesh_graph_search
-
 
 class ScanRep:
     """Scan Representation class.
@@ -103,32 +98,3 @@ class ScanRep:
                 c = np.mean(p, axis=0)
                 n = 10 * self.normals[idx]  # TODO: quiver scaling is currently arbitrary
                 ax.quiver(c[0], c[1], c[2], n[0], n[1], n[2], color=color)
-
-
-def pc_to_scan(P):
-    """Point cloud to scan
-
-    Parameters
-    ----------
-    P : np.array (n_pts x 3)
-        Unorganized point cloud
-
-    Returns
-    -------
-    ScanRep
-        Scan representing input point cloud
-    
-    """
-    # Downsample
-    P = general.downsample(P, factor=5, axis=0)
-
-    # Create the mesh
-    mesh = LidarMesh(P)
-    # Prune the mesh
-    mesh.prune(10)
-    # Cluster the mesh with graph search
-    clusters, avg_normals = cluster_mesh_graph_search(mesh)
-
-    # Form scan topology
-    vertices, faces, normals = scan_from_clusters(mesh, clusters, avg_normals)
-    return ScanRep(vertices, faces, normals)

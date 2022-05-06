@@ -8,11 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from planeslam.geometry import vector_projection
-from planeslam.general import normalize, downsample
+from planeslam.general import normalize
 from planeslam.box import Box
-from planeslam.mesh import LidarMesh
-from planeslam.clustering import cluster_mesh_graph_search
-from planeslam.extraction import planes_from_clusters
 
 
 class BoundedPlane:
@@ -155,31 +152,3 @@ def plane_to_plane_dist(plane_1, plane_2):
     c2c_vector = plane_1.center - plane_2.center  # NOTE: may be issue with c2c_vector pointing opposite to avg_normal
     avg_normal = (plane_1.normal + plane_2.normal) / 2
     return np.linalg.norm(vector_projection(c2c_vector, avg_normal))
-
-
-def pc_to_planes(P):
-    """Point cloud to planes
-
-    Parameters
-    ----------
-    P : np.array (n_pts x 3)
-        Unorganized point cloud
-
-    Returns
-    -------
-    ScanRep
-        Scan representing input point cloud
-    
-    """
-    # Downsample
-    P = downsample(P, factor=5, axis=0)
-
-    # Create the mesh
-    mesh = LidarMesh(P)
-    # Prune the mesh
-    mesh.prune(10)
-    # Cluster the mesh with graph search
-    clusters, avg_normals = cluster_mesh_graph_search(mesh)
-
-    # Extract planes
-    return planes_from_clusters(mesh, clusters, avg_normals)

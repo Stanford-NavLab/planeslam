@@ -4,9 +4,12 @@
 
 import numpy as np
 
-import planeslam.geometry as geometry
+from planeslam.general import downsample
+from planeslam.mesh import LidarMesh
+from planeslam.geometry import project_points_to_plane
 from planeslam.plane import BoundedPlane
-from planeslam.clustering import sort_mesh_clusters, mesh_cluster_pts
+from planeslam.scanrep import ScanRep
+from planeslam.clustering import sort_mesh_clusters, mesh_cluster_pts, cluster_mesh_graph_search
 
 
 def bd_plane_from_pts(pts, n):
@@ -33,7 +36,7 @@ def bd_plane_from_pts(pts, n):
     # Project to nearest cardinal plane to find bounding box points
     plane_idx = np.argsort(np.linalg.norm(np.eye(3) - np.abs(n), axis=0))[0]
     plane = np.eye(3)[:,plane_idx][:,None]
-    pts_proj = geometry.project_points_to_plane(pts, plane)
+    pts_proj = project_points_to_plane(pts, plane)
 
     # Find 2D bounding box of points within plane
     # Orders points counterclockwise with respect to the normal (i.e. right hand rule)
@@ -60,7 +63,7 @@ def bd_plane_from_pts(pts, n):
             plane_pts[:,ax] = np.array([min[i], min[i], max[i], max[i]])  # Case 3
 
     # Project back to original normal plane
-    plane_pts = geometry.project_points_to_plane(plane_pts, n)
+    plane_pts = project_points_to_plane(plane_pts, n)
     
     return plane_pts
 
@@ -237,3 +240,60 @@ def planes_from_clusters(mesh, clusters, avg_normals):
         planes.append(bplane)
     
     return planes
+
+
+def pc_to_scan(P):
+    """Point cloud to scan
+
+    Parameters
+    ----------
+    P : np.array (n_pts x 3)
+        Unorganized point cloud
+
+    Returns
+    -------
+    ScanRep
+        Scan representing input point cloud
+    
+    """
+    # Downsample
+    P = downsample(P, factor=5, axis=0)
+
+    # Create the mesh
+    mesh = LidarMesh(P)
+    # Prune the mesh
+    mesh.prune(10)
+    # Cluster the mesh with graph search
+    clusters, avg_normals = cluster_mesh_graph_search(mesh)
+
+    # Form scan topology
+    vertices, faces, normals = scan_from_clusters(mesh, clusters, avg_normals)
+    return ScanRep(vertices, faces, normals)
+
+
+def pc_to_planes(P):
+    """Point cloud to planes
+
+    Parameters
+    ----------
+    P : np.array (n_pts x 3)
+        Unorganized point cloud
+
+    Returns
+    -------
+    ScanRep
+        Scan representing input point cloud
+    
+    """
+    # Downsample
+    P = downsample(P, factor=5, axis=0)
+
+    # Create the mesh
+    mesh = LidarMesh(P)
+    # Prune the mesh
+    mesh.prune(10)
+    # Cluster the mesh with graph search
+    clusters, avg_normals = cluster_mesh_graph_search(mesh)
+
+    # Extract planes
+    return planes_from_clusters(mesh, clusters, avg_normals)
