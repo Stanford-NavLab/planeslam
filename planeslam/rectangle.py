@@ -30,14 +30,11 @@ class Rectangle:
         Parameters
         ----------
         vertices : np.array (4 x 2)
-            Rectangle vertices
+            Rectangle vertices, ordered counterclockwise starting from bottom left
 
         """
-        if np.all(min < max):
-            self.min = min
-            self.max = max
-        else:
-            print("Box is empty")
+        # TODO: check if vertices form a rectangle and are ordered properly
+        self.vertices = vertices
         
 
     def __str__(self):
