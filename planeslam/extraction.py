@@ -8,6 +8,7 @@ from planeslam.general import downsample
 from planeslam.mesh import LidarMesh
 from planeslam.geometry import project_points_to_plane
 from planeslam.plane import BoundedPlane
+from planeslam.box import Box
 from planeslam.scanrep import ScanRep
 from planeslam.clustering import sort_mesh_clusters, mesh_cluster_pts, cluster_mesh_graph_search
 
@@ -66,6 +67,25 @@ def bd_plane_from_pts(pts, n):
     plane_pts = project_points_to_plane(plane_pts, n)
     
     return plane_pts
+
+
+def box_from_pts(pts):
+    """Extract 2D bounding box set of 2D points
+
+    Parameters
+    ----------
+    pts : np.array (n_pts x 2)
+        Points
+
+    Returns
+    -------
+    Box
+        2D bounding box
+        
+    """
+    min = np.amin(pts, axis=0)
+    max = np.amax(pts, axis=0)
+    return Box(min, max)
 
 
 def scan_from_clusters(mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
