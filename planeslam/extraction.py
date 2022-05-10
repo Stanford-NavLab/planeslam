@@ -9,7 +9,6 @@ from planeslam.mesh import LidarMesh
 from planeslam.geometry import project_points_to_plane
 from planeslam.plane import BoundedPlane
 from planeslam.box import Box
-from planeslam.scanrep import ScanRep
 from planeslam.clustering import sort_mesh_clusters, mesh_cluster_pts, cluster_mesh_graph_search
 
 
@@ -104,19 +103,19 @@ def scan_from_clusters(mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
 
     Returns
     -------
+    planes : list
+        List of BoundedPlanes
     vertices : np.array (n_verts x 3)
         Ordered array of vertices in scan
-    faces : list of lists
+    faces : np.array (n_faces, 4)
         Sets of 4 vertex indices which form a face
-    normals : np.array (n_faces x 3)
-        Normal vectors for each face
 
     """
     # TODO: merge planes which are inside other planes into each other
 
     vertices = []
-    faces = []  # Sets of 4 vertex indices
-    normals = []
+    faces = []  
+    planes = []
     vertex_counter = 0
 
     # Sort clusters from largest to smallest
@@ -147,13 +146,12 @@ def scan_from_clusters(mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
 
         vertices += list(plane_pts[keep_mask,:])
         faces.append(new_face)
-        normals.append(n)
+        planes.append(BoundedPlane(np.asarray(vertices)[new_face,:]))
 
     vertices = np.asarray(vertices)
     faces = np.asarray(faces)
-    normals = np.asarray(normals)
     
-    return vertices, faces, normals
+    return planes, vertices, faces
 
 
 def scan_from_pcl_clusters(P, clusters, normals_arr, vertex_merge_thresh=1.0):
@@ -260,35 +258,6 @@ def planes_from_clusters(mesh, clusters, avg_normals):
         planes.append(bplane)
     
     return planes
-
-
-def pc_to_scan(P):
-    """Point cloud to scan
-
-    Parameters
-    ----------
-    P : np.array (n_pts x 3)
-        Unorganized point cloud
-
-    Returns
-    -------
-    ScanRep
-        Scan representing input point cloud
-    
-    """
-    # Downsample
-    P = downsample(P, factor=5, axis=0)
-
-    # Create the mesh
-    mesh = LidarMesh(P)
-    # Prune the mesh
-    mesh.prune(10)
-    # Cluster the mesh with graph search
-    clusters, avg_normals = cluster_mesh_graph_search(mesh)
-
-    # Form scan topology
-    vertices, faces, normals = scan_from_clusters(mesh, clusters, avg_normals)
-    return ScanRep(vertices, faces, normals)
 
 
 def pc_to_planes(P):
