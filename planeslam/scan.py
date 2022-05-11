@@ -8,10 +8,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from planeslam.general import downsample
-from planeslam.extraction import box_from_pts, scan_from_clusters
+from planeslam.extraction import scan_from_clusters
 from planeslam.clustering import cluster_mesh_graph_search
 from planeslam.mesh import LidarMesh
-from planeslam.plane import BoundedPlane, plane_to_plane_dist
+from planeslam.geometry.plane import BoundedPlane, plane_to_plane_dist
+from planeslam.geometry.box import box_from_pts
 
 
 class Scan:
@@ -102,7 +103,7 @@ class Scan:
     def merge(self, scan, norm_thresh=0.1, dist_thresh=5.0):
         """Merge 
         
-        Merge own set of planes (P) with set of planes Q
+        Merge own set of planes (P) with set of planes Q.
 
         Parameters
         ----------
@@ -164,6 +165,15 @@ class Scan:
             merged_planes.append(Q[i])
 
         return Scan(merged_planes)
+
+
+    def reduce(self):
+        """Reduce
+        
+        Reduce scan by merging vertices and planes.
+        
+        """
+        
 
 
 def pc_to_scan(P):

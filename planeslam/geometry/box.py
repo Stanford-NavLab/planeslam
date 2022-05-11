@@ -121,3 +121,22 @@ class Box:
         V = self.vertices()
         ax.plot(np.hstack((V[:,0],V[0,0])), np.hstack((V[:,1],V[0,1])), color=color)
 
+
+
+def box_from_pts(pts):
+    """Extract 2D bounding box set of 2D points
+
+    Parameters
+    ----------
+    pts : np.array (n_pts x 2)
+        Points
+
+    Returns
+    -------
+    Box
+        2D bounding box
+        
+    """
+    min = np.amin(pts, axis=0)
+    max = np.amax(pts, axis=0)
+    return Box(min, max)

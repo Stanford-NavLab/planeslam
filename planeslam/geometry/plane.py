@@ -7,9 +7,9 @@ This module defines the BoundedPlane class and relevant utilities.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from planeslam.geometry import vector_projection
 from planeslam.general import normalize
-from planeslam.box import Box
+from planeslam.geometry.util import vector_projection
+from planeslam.geometry.box import Box
 
 
 class BoundedPlane:
