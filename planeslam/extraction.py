@@ -6,7 +6,7 @@ import numpy as np
 
 from planeslam.general import downsample
 from planeslam.mesh import LidarMesh
-from planeslam.geometry import project_points_to_plane
+from planeslam.geometry.util import project_points_to_plane
 from planeslam.geometry.plane import BoundedPlane
 from planeslam.geometry.box import Box
 from planeslam.clustering import sort_mesh_clusters, mesh_cluster_pts, cluster_mesh_graph_search
