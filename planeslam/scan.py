@@ -173,6 +173,8 @@ class Scan:
         Reduce scan by merging vertices and planes.
         
         """
+        # Iterate through the planes, and for each new plane, check if 
+        # any of it's vertices are close to any existing vertices
         
 
 

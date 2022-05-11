@@ -44,15 +44,22 @@ class BoundedPlane:
             Ordered array of vertices 
 
         """
-        # TODO: check that vertices are coplanar and form a rectangle
-        self.vertices = vertices
+        # Check side lengths
+        S = np.diff(vertices, axis=0, append=vertices[0][None,:])  # Side vectors
+        assert np.all(np.isclose(S[0], -S[2])) and np.all(np.isclose(S[1], -S[3])), \
+            "Side lengths from vertices given to BoundedPlane constructor are not equal"
 
         # Form the basis vectors
-        basis_x = normalize(vertices[1,:] - vertices[0,:])  # x is v2 - v1 
-        basis_y = normalize(vertices[3,:] - vertices[0,:])  # y is v4 - v1 
+        basis_x = normalize(S[0])  # x is v2 - v1 
+        basis_y = normalize(-S[3])  # y is v4 - v1 
         basis_z = np.cross(basis_x, basis_y)  # z is x cross y
         self.basis = np.vstack((basis_x, basis_y, basis_z)).T
 
+        # Coplanarity check
+        assert np.all(np.isclose(np.cross(basis_z, np.cross(-S[1], S[2])), 0)), \
+            "Vertices given to BoundedPlane constructor are not coplanar"
+
+        self.vertices = vertices
         self.normal = basis_z[:,None]  # Normal is z
         self.center = np.mean(vertices, axis=0)
         
@@ -152,3 +159,5 @@ def plane_to_plane_dist(plane_1, plane_2):
     c2c_vector = plane_1.center - plane_2.center  # NOTE: may be issue with c2c_vector pointing opposite to avg_normal
     avg_normal = (plane_1.normal + plane_2.normal) / 2
     return np.linalg.norm(vector_projection(c2c_vector, avg_normal))
+
+
