@@ -3,6 +3,9 @@
 """
 
 import numpy as np
+from scipy.spatial.transform import Rotation as R
+
+from planeslam.general import normalize
 
 
 def vector_projection(a, b):
@@ -21,7 +24,7 @@ def vector_projection(a, b):
         Projected vector
     
     """
-    b_ = b / np.linalg.norm(b)
+    b_ = normalize(b)
     return np.dot(a, b_) * b_
 
 
@@ -65,12 +68,70 @@ def rot_mat_from_vecs(u, v):
 
     """
     # Make sure u and v are normalized
-    u = u / np.linalg.norm(u)
-    v = v / np.linalg.norm(v)
+    u = normalize(u)
+    v = normalize(v)
     ndim = len(u)
     w = u + v
     return 2 * w @ w.T / (w.T @ w) - np.eye(ndim)  # Rodrigues's rotation formula
 
 
+def axis_angle_to_rot_mat(axis, angle):
+    """Convert angle and axis of rotation pair to rotation matrix (for 3D)
 
+    Parameters
+    ----------
+    angle : float
+        Angle of rotation in radians
+    axis : np.array (3 x 1)
+        Rotation axis
+
+    Returns
+    -------
+    np.array (3 x 3)
+        Rotation matrix
+
+    """
+    axis = normalize(axis).flatten()
+    q = np.hstack((axis * np.sin(angle/2), np.cos(angle/2)))
+    return quat_to_rot_mat(q)
+
+
+def quat_to_rot_mat(quat):
+    """Convert quaternion to 3D rotation matrix 
+
+    Parameters
+    ----------
+    quat : np.array (1 x 4)
+        Quaternion
+
+    Returns
+    -------
+    np.array (3 x 3)
+        Rotation matrix
+
+    """
+    r = R.from_quat(quat)
+    return r.as_matrix()
+
+
+
+def skew(v):
+    """Convert vector to skew symmetric matrix
+
+    NOTE: currently unused
+    
+    Parameters
+    ----------
+    v : np.array (3 x 1)
+        Vector
+    
+    Returns
+    -------
+    np.array (3 x 3)
+        Skew symmetric matrix
+
+    """
+    return np.array([[0, -v[2], v[1]],
+                     [v[2], 0, -v[0]],
+                     [-v[1], v[0], 0]])
 

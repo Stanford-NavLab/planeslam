@@ -9,15 +9,15 @@ import numpy as np
 from planeslam.geometry.plane import plane_to_plane_dist
 
 
-def get_correspondences(P, Q, norm_thresh=0.1, dist_thresh=5.0):
+def get_correspondences(source, target, norm_thresh=0.1, dist_thresh=5.0):
     """Get correspondences between two scans
 
     Parameters
     ----------
-    P : Scan
-        First scan
-    Q : Scan
-        Second scan
+    source : Scan
+        Source scan
+    target : Scan
+        target scan
     norm_thresh : float 
         Correspodence threshold for comparing normal vectors
     dist_thesh : float
@@ -25,13 +25,14 @@ def get_correspondences(P, Q, norm_thresh=0.1, dist_thresh=5.0):
 
     Returns
     -------
-    correspondences : dict
-        Dictionary storing corresponding planes in Q for each plane in P
+    correspondences : list of tuples
+        List of correspondence tuples
         
     """
-    P = P.planes
-    Q = Q.planes
-    correspondences = {k: [] for k in range(len(P))}
+    P = source.planes
+    Q = target.planes
+    #correspondences = {k: [] for k in range(len(P))}
+    correspondences = []
 
     for i, p in enumerate(P):
         for j, q in enumerate(Q): 
@@ -40,7 +41,7 @@ def get_correspondences(P, Q, norm_thresh=0.1, dist_thresh=5.0):
                 # Check plane to plane distance    
                 if plane_to_plane_dist(p, q) < dist_thresh:
                     # Add the correspondence
-                    print(i,j)
-                    correspondences[i].append(j)
+                    #correspondences[i].append(j)
+                    correspondences.append((i,j))
         
     return correspondences
