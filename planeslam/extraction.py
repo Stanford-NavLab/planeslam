@@ -7,7 +7,7 @@ import numpy as np
 from planeslam.general import downsample
 from planeslam.mesh import LidarMesh
 from planeslam.geometry.util import project_points_to_plane
-from planeslam.geometry.plane import BoundedPlane
+from planeslam.geometry.plane import BoundedPlane, merge_plane
 from planeslam.geometry.box import Box
 from planeslam.clustering import sort_mesh_clusters, mesh_cluster_pts, cluster_mesh_graph_search
 
@@ -108,8 +108,8 @@ def scan_from_clusters(mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
 
         # Extract bounding plane
         plane_pts = bd_plane_from_pts(cluster_pts, n)
-        new_face = 4 * [None]  # New face indices
-        keep_mask = 4 * [True]  # Which of the new plane points to keep (i.e. not reused)
+        new_face = -np.ones(4, dtype=int)  # New face indices
+        merge_mask = np.zeros(4, dtype=bool)  # Which of the new plane points to merge with existing points
         
         # Check if this plane shares any vertices with previous planes
         for i in range(len(vertices)):
@@ -117,17 +117,30 @@ def scan_from_clusters(mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
             best_match = np.argsort(dists)[0]
             if dists[best_match] < vertex_merge_thresh:
                 new_face[best_match] = i
-                keep_mask[best_match] = False
-        
+                merge_mask[best_match] = True
+
+        # If shared, adjust plane accordingly
+        if sum(merge_mask) > 0:
+            if sum(merge_mask) == 2:
+                anchor_idxs = new_face[new_face!=-1]
+                anchor_verts = np.asarray(vertices)[anchor_idxs]
+                new_plane = merge_plane(merge_mask, anchor_verts, plane_pts, n)
+
+                vertices += list(new_plane[~merge_mask,:])
+                planes.append(BoundedPlane(new_plane))
+
+        # Otherwise, add all new vertices
+        else:
+            vertices += list(plane_pts)
+            planes.append(BoundedPlane(plane_pts))
+
         # Set new face indices
         for i in range(4):
-            if new_face[i] is None:
+            if new_face[i] == -1:
                 new_face[i] = vertex_counter
                 vertex_counter += 1
 
-        vertices += list(plane_pts[keep_mask,:])
         faces.append(new_face)
-        planes.append(BoundedPlane(np.asarray(vertices)[new_face,:]))
 
     vertices = np.asarray(vertices)
     faces = np.asarray(faces)

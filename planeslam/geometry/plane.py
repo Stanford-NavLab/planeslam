@@ -161,3 +161,69 @@ def plane_to_plane_dist(plane_1, plane_2):
     return np.linalg.norm(vector_projection(c2c_vector, avg_normal))
 
 
+def merge_plane(mask, anchor_verts, old_verts, normal):
+    """Merge plane
+    
+    Merge a plane with another using 2 anchor vertices.
+
+    Mask indicates which vertices from old_vertices are being merged with
+    the anchors (and also which vertices in the plane the anchors belong to)
+
+    [True, True, False, False] = v2 - v1 = x
+    [False, True, True, False] = v3 - v2 = y
+    [False, False, True, True] = v4 - v3 = -x
+    [True, False, False, True] = v4 - v1 = y
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
+    new_verts = np.empty((4,3))
+
+    if np.all(mask == [True, True, False, False]):
+        basis_x = normalize(np.diff(anchor_verts, axis=0))
+        basis_y = np.cross(normal.T, basis_x)
+        S2_len = np.linalg.norm(old_verts[2] - old_verts[1])
+        v3_new = anchor_verts[1] + S2_len * basis_y
+        v4_new = anchor_verts[0] + S2_len * basis_y
+        new_verts[2] = v3_new
+        new_verts[3] = v4_new
+        new_verts[mask] = anchor_verts
+
+    elif np.all(mask == [False, True, True, False]):
+        basis_y = normalize(np.diff(anchor_verts, axis=0))
+        basis_x = np.cross(basis_y, normal.T)
+        S1_len = np.linalg.norm(old_verts[1] - old_verts[0])
+        v4_new = anchor_verts[1] - S1_len * basis_x
+        v1_new = anchor_verts[0] - S1_len * basis_x
+        new_verts[0] = v1_new
+        new_verts[3] = v4_new
+        new_verts[mask] = anchor_verts
+
+    elif np.all(mask == [False, False, True, True]):
+        basis_x = -normalize(np.diff(anchor_verts, axis=0))
+        basis_y = np.cross(normal.T, basis_x)
+        S2_len = np.linalg.norm(old_verts[2] - old_verts[1])
+        v2_new = anchor_verts[0] - S2_len * basis_y
+        v1_new = anchor_verts[1] - S2_len * basis_y
+        new_verts[0] = v1_new
+        new_verts[1] = v2_new
+        new_verts[mask] = anchor_verts
+    
+    elif np.all(mask == [True, False, False, True]):
+        basis_y = normalize(np.diff(anchor_verts, axis=0))
+        basis_x = np.cross(basis_y, normal.T)
+        S1_len = np.linalg.norm(old_verts[1] - old_verts[0])
+        v3_new = anchor_verts[1] + S1_len * basis_x
+        v2_new = anchor_verts[0] + S1_len * basis_x
+        new_verts[2] = v3_new
+        new_verts[1] = v2_new
+        new_verts[mask] = anchor_verts
+
+    else:
+        print("Not a valid mask")
+    
+    return new_verts
