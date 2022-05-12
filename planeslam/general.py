@@ -3,6 +3,7 @@
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def NED_to_ENU(P):
@@ -94,7 +95,41 @@ def normalize(v):
     return v / np.linalg.norm(v)
 
 
+def plot_3D_setup(P, figsize=(15,10)):
+    """Setup matplotlib 3D plotting
+
+    Parameters
+    ----------
+    P : np.array (n_pts x 3)
+        Points to use for axis scaling
+    
+    Returns
+    -------
+    ax : axes
+        Axes for plotting
+    
+    """
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+
+    ax.set_box_aspect((np.ptp(P[:,0]), np.ptp(P[:,1]), np.ptp(P[:,2])))
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+
+    return ax
 
 
+def color_legend(ax, num_colors):
+    """Display legend for matplitlib default colors
+    
+    Parameters
+    ----------
+    ax : axes
+        Axes to display on
+    num_colors : int
+        Number of colors in legend
 
-
+    """
+    for i in range(num_colors):
+        ax.plot(0, 0, 0, color='C'+str(i), label=str(i))
+    ax.legend()

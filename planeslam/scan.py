@@ -80,7 +80,7 @@ class Scan:
         self.center += t[:,None]
     
 
-    def plot(self, ax=None, color='b', show_normals=False):
+    def plot(self, ax=None, color=None, show_normals=False):
         """Plot
 
         Parameters
@@ -88,7 +88,7 @@ class Scan:
         ax : matplotlib axes, optional
             Axes to plot on, if not provided, will generate new set of axes
         color : optional
-            Color to plot, default blue
+            Color to plot, default matplotlib default color sequence
         show_normals : bool, optional
             Whether to plot normal vectors for each plane
         
@@ -96,8 +96,12 @@ class Scan:
         if ax == None:
             fig, ax = plt.subplots()
         
-        for p in self.planes:
-            p.plot(ax, color, show_normals)
+        if color is None:
+            for i, p in enumerate(self.planes):
+                p.plot(ax, 'C'+str(i), show_normals)
+        else:
+            for p in self.planes:
+                p.plot(ax, color, show_normals)
             
     
     def merge(self, scan, norm_thresh=0.1, dist_thresh=5.0):
