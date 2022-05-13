@@ -117,8 +117,6 @@ def quat_to_rot_mat(quat):
 
 def skew(v):
     """Convert vector to skew symmetric matrix
-
-    NOTE: currently unused
     
     Parameters
     ----------
