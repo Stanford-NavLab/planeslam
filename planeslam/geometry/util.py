@@ -120,7 +120,7 @@ def skew(v):
     
     Parameters
     ----------
-    v : np.array (3 x 1)
+    v : np.array (1 x 3)
         Vector
     
     Returns
@@ -133,3 +133,6 @@ def skew(v):
                      [v[2], 0, -v[0]],
                      [-v[1], v[0], 0]])
 
+
+def test():
+    print("hello")
