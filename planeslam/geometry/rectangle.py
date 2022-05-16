@@ -57,6 +57,28 @@ class Rectangle:
         """
         self.min = (R @ self.min[:,None]).T[0] + t 
         self.max = (R @ self.max[:,None]).T[0] + t 
+
+
+    def halfplanes(self):
+        """Compute the halfplane representation of this rectangle
+        
+        """
+        
+
+
+    def is_intersecting(self, rect):
+        """Check if this rectangle intersects with another rectangle
+
+        Parameters
+        ----------
+        rect : Rectangle
+
+        Returns
+        -------
+        bool : True if rectangle intersects with other rectangle
+        
+        """
+        # Check if any of the other rectangle's vertices lie within this rectangle
     
 
     def plot(self, ax=None, color='b'):

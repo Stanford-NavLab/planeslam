@@ -224,6 +224,6 @@ def merge_plane(mask, anchor_verts, old_verts, normal):
         new_verts[mask] = anchor_verts
 
     else:
-        print("Not a valid mask")
+        print(mask, ", is not a valid mask")
     
     return new_verts
