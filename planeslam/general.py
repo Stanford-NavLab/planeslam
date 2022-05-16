@@ -95,7 +95,7 @@ def normalize(v):
     return v / np.linalg.norm(v)
 
 
-def plot_3D_setup(P, figsize=(15,10)):
+def plot_3D_setup(P=None, figsize=(15,10)):
     """Setup matplotlib 3D plotting
 
     Parameters
@@ -112,7 +112,8 @@ def plot_3D_setup(P, figsize=(15,10)):
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(1, 1, 1, projection='3d')
 
-    ax.set_box_aspect((np.ptp(P[:,0]), np.ptp(P[:,1]), np.ptp(P[:,2])))
+    if P is not None:
+        ax.set_box_aspect((np.ptp(P[:,0]), np.ptp(P[:,1]), np.ptp(P[:,2])))
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
 
