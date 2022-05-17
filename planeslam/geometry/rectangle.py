@@ -6,6 +6,7 @@ This module defines the Rectangle class and relevant utilities.
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.linalg import block_diag
 
 
 class Rectangle:
@@ -61,9 +62,20 @@ class Rectangle:
 
     def halfplanes(self):
         """Compute the halfplane representation of this rectangle
-        
+
+        Returns
+        -------
+        A : np.array (4 x 2)
+            Halfplane vectors
+        b : np.array (4 x 1)
+            Halfplane scalars
+
         """
-        
+        V = self.vertices
+        d = np.diff(V, axis=0, append=V[0][None,:])
+        A = np.roll(d, -1, axis=0)  # TODO: normalize A?
+        b = block_diag(*list(A)) @ np.reshape(V, (8,1))
+        return A, b
 
 
     def is_intersecting(self, rect):
@@ -79,6 +91,10 @@ class Rectangle:
         
         """
         # Check if any of the other rectangle's vertices lie within this rectangle
+        A, b = self.halfplanes()
+        check = A @ rect.vertices.T >= b
+        check = np.all(check, axis=0)
+        return np.any(check)
     
 
     def plot(self, ax=None, color='b'):
