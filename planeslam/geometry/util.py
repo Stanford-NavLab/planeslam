@@ -133,6 +133,3 @@ def skew(v):
                      [v[2], 0, -v[0]],
                      [-v[1], v[0], 0]])
 
-
-def test():
-    print("hello")
