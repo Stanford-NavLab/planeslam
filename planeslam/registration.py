@@ -48,7 +48,7 @@ def get_correspondences(source, target, norm_thresh=0.1, dist_thresh=5.0):
     return correspondences
 
 
-def extract_corresponding_features(source, target):
+def extract_corresponding_features(source, target, correspondences):
     """Extract corresponding normals and distances for source and target scans
 
     N denotes number of correspondences
@@ -72,7 +72,7 @@ def extract_corresponding_features(source, target):
         Stacked vector of corresponding target distances
     
     """
-    correspondences = get_correspondences(source, target)
+    #correspondences = get_correspondences(source, target)
     N = len(correspondences)
 
     P = source.planes
@@ -110,7 +110,7 @@ def expmap(w):
     
     """
     theta = np.linalg.norm(w)
-    
+
     if theta == 0:
         R = np.eye(3)
     else:

@@ -77,8 +77,9 @@ class Scan:
         """
         for p in self.planes:
             p.transform(R, t)
-        self.vertices = (R @ self.vertices.T).T + t
-        self.center += t[:,None]
+        # TODO: comment back in once vertex and face generation implemented
+        # self.vertices = (R @ self.vertices.T).T + t
+        # self.center += t[:,None]
     
 
     def plot(self, ax=None, color=None, show_normals=False):
