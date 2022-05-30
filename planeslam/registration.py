@@ -183,6 +183,44 @@ def residual(n_s, d_s, n_t, d_t, q):
 
     r = np.vstack((n_q - n_t, d_q - d_t))
     return r, n_q
+
+# def residual(n_s, d_s, n_t, d_t, R, t):
+#     """Residual for Gauss-Newton
+
+#     Parameters
+#     ----------
+#     n_s : np.array (3N x 1)
+#         Stacked vector of source normals
+#     d_s : np.array (N x 1)
+#         Stacked vector of source distances
+#     n_t : np.array (3N x 1)
+#         Stacked vector of target normals
+#     d_t : np.array (N x 1)
+#         Stacked vector of target distances
+#     q : np.array (6 x 1)
+#         Parameterized transformation
+
+#     Returns
+#     -------
+#     r : np.array (4N x 1)
+#         Stacked vector of plane-to-plane error residuals
+#     n_q : np.array (3N x 1)
+#         Source normals transformed by q
+    
+#     """
+#     assert len(n_s) % 3 == 0, "Invalid normals vector, length should be multiple of 3"
+#     N = int(len(n_s) / 3)
+
+#     # Transform normals
+#     n_q = n_s.reshape((3, N), order='F')
+#     n_q = R @ n_q
+#     n_q = n_q.reshape((3*N, 1), order='F')
+
+#     # Transform distances
+#     d_q = d_s + n_q.reshape((-1,3)) @ t 
+
+#     r = np.vstack((n_q - n_t, d_q - d_t))
+#     return r, n_q
     
 
 def jacobian(n_s, n_q):
