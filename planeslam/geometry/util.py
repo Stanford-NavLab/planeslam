@@ -102,7 +102,7 @@ def quat_to_rot_mat(quat):
     Parameters
     ----------
     quat : np.array (1 x 4)
-        Quaternion
+        Quaternion in scalar-last (x, y, z, w) format
 
     Returns
     -------
@@ -120,7 +120,7 @@ def skew(v):
     
     Parameters
     ----------
-    v : np.array (1 x 3)
+    v : np.array (3)
         Vector
     
     Returns

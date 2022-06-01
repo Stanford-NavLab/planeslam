@@ -252,3 +252,83 @@ def jacobian(n_s, n_q):
         J[4*i+3,3:6] = np.zeros(3)
     
     return J
+
+
+def decoupled_register(source, target):
+    """Register source to target scan using decoupled approach
+    
+    Parameters
+    ----------
+    source : Scan
+        Source scan
+    target : Scan
+        Target scan
+
+    Returns
+    -------
+    R_hat : np.array (3 x 3)
+        Estimated rotation
+    t_hat : np.array (3) 
+        Estimated translation
+
+    """
+    # Find correspondences and extract features
+    correspondences = get_correspondences(source, target)
+    n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
+
+    # Estimate rotation
+    H = np.zeros((3,3))
+    for i in range(len(correspondences)):
+        H += n_s[3*i:3*(i+1)] @ n_t[3*i:3*(i+1)].T
+    u, s, v = np.linalg.svd(H)
+    R_hat = u @ v
+
+    # Estimate translation
+    A = np.reshape(n_t, (-1,3))
+    b = d_t - d_s
+    t_hat = np.linalg.lstsq(A, b, rcond=None)[0]
+
+    return R_hat, t_hat
+
+
+def GN_register(source, target):
+    """Register source to target scan using Gauss Newton approach
+    
+    Parameters
+    ----------
+    source : Scan
+        Source scan
+    target : Scan
+        Target scan
+
+    Returns
+    -------
+    R_hat : np.array (3 x 3)
+        Estimated rotation
+    t_hat : np.array (3) 
+        Estimated translation
+
+    """
+    # Find correspondences and extract features
+    correspondences = get_correspondences(source, target)
+    n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
+
+    # Initial transformation
+    t = np.array([0, 1, 0])[:,None]
+    u = np.array([1, 0, 0])[:,None]
+    theta = 0.1
+    q = np.vstack((t, theta*u))
+
+    # Gauss-Newton
+    n_iters = 5
+    lmbda = 1e-3
+
+    for i in range(n_iters):
+        r, n_q = residual(n_s, d_s, n_t, d_t, q)
+        J = jacobian(n_s, n_q)
+        q = q + np.linalg.inv(J.T @ J + lmbda * np.eye(6)) @ J.T @ r
+
+    R_hat = expmap(q[3:].flatten())
+    t_hat = q[:3]
+
+    return R_hat, t_hat
