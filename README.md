@@ -12,6 +12,12 @@ Clone the GitHub repository:
 Create conda environment from `.yml` file:
 
     conda env create -f environment.yml
+    
+(Alternatively, if not on Windows, create your own environement, and pip install the dependencies manually):
+
+    conda create -n planeslam python=3.7
+    pip install numpy scipy ipykernel matplotlib ipympl
+    
 
 Active the environment:
    
