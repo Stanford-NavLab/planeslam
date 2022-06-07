@@ -409,7 +409,7 @@ def torch_GN_register(source, target, device):
 
     # Gauss-Newton
     n_iters = 10
-    lmbda = 1e-3
+    lmbda = 1e-6
     mu = 5e-1
 
     for i in range(n_iters):
@@ -417,6 +417,78 @@ def torch_GN_register(source, target, device):
         # Compute Jacobian with pytorch
         J = F.jacobian(torch_residual, (q, n_s, d_s, n_t, d_t), vectorize=True)[0].reshape((-1,6))
         q = q - mu * torch.linalg.inv(J.T @ J + lmbda * torch.eye(6, device=device)) @ J.T @ r
+    
+    r = torch_residual(q, n_s, d_s, n_t, d_t)
+    print("final loss: ", torch.linalg.norm(r)**2)
+
+    R_hat = so3_exp_map(q[3:].T).cpu().detach().numpy()[0]
+    t_hat = q[:3].cpu().detach().numpy()
+
+    return R_hat, t_hat
+
+
+def torch_register(source, target, device):
+    """Register source to target scan using pytorch SGD optimization
+    
+    Parameters
+    ----------
+    source : Scan
+        Source scan
+    target : Scan
+        Target scan
+    device : str
+        Pytorch device (i.e. 'cuda' or 'cpu')
+
+    Returns
+    -------
+    R_hat : np.array (3 x 3)
+        Estimated rotation
+    t_hat : np.array (3) 
+        Estimated translation
+    
+    """
+    # Find correspondences and extract features
+    correspondences = get_correspondences(source, target)
+    n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
+
+    # Convert features to torch tensors
+    n_s = torch.from_numpy(n_s).float().to(device)
+    d_s = torch.from_numpy(d_s).float().to(device)
+    n_t = torch.from_numpy(n_t).float().to(device)
+    d_t = torch.from_numpy(d_t).float().to(device)
+
+    # Initial transformation
+    q_init = torch.randn(6, 1, dtype=torch.float32, device=device)
+
+    # Instantiate copy of the initialization 
+    q = q_init.clone().detach()
+    q.requires_grad = True
+
+    r = torch_residual(q, n_s, d_s, n_t, d_t)
+    loss = torch.linalg.norm(r)**2
+
+    # Init the optimizer
+    optimizer = torch.optim.SGD([q], lr=0.1, momentum=0.5)
+
+    # Run the optimization
+    loss_target = 1e-3  # target loss to achieve (under)
+    it = 0
+    max_it = 250
+    while loss > loss_target and it < max_it:
+        # Re-init the optimizer gradients
+        optimizer.zero_grad()
+
+        # Compute loss
+        r = torch_residual(q, n_s, d_s, n_t, d_t)
+        loss = torch.linalg.norm(r)**2
+
+        loss.backward(retain_graph=True)
+        
+        # Apply the gradients
+        optimizer.step()
+        it += 1
+
+    print('Final loss: ', loss.cpu().detach().numpy(), ' iterations: ', it)
 
     R_hat = so3_exp_map(q[3:].T).cpu().detach().numpy()[0]
     t_hat = q[:3].cpu().detach().numpy()
