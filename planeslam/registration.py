@@ -5,6 +5,9 @@ Functions for plane-based registration.
 """
 
 import numpy as np
+import torch
+import torch.autograd.functional as F
+from pytorch3d.transforms.so3 import so3_exp_map
 
 from planeslam.geometry.plane import plane_to_plane_dist
 from planeslam.geometry.util import skew
@@ -330,5 +333,92 @@ def GN_register(source, target):
 
     R_hat = expmap(q[3:].flatten())
     t_hat = q[:3]
+
+    return R_hat, t_hat
+
+
+def torch_residual(q, n_s, d_s, n_t, d_t):
+    """Residual used to define loss to optimize
+
+    Parameters
+    ----------
+    q : torch.tensor (6 x 1)
+        Current parameterized transformation estimate
+    n_s : torch.tensor (3N x 1)
+        Stacked vector of source normals
+    d_s : torch.tensor (N x 1)
+        Stacked vector of source distances
+    n_t : torch.tensor (3N x 1)
+        Stacked vector of target normals
+    d_t : torch.tensor (N x 1)
+        Stacked vector of target distances
+
+    Returns
+    -------
+    r : torch.tensor (4N x 1)
+        Stacked vector of plane-to-plane error residuals
+    
+    """
+    assert len(n_s) % 3 == 0, "Invalid normals vector, length should be multiple of 3"
+    N = int(len(n_s) / 3)
+
+    t = q[:3]
+    log_R = q[3:].T
+
+    R = so3_exp_map(log_R)
+    n_q = (R @ n_s.reshape((N, 3)).T).T.reshape((3*N, 1))
+
+    d_q = d_s + n_q.reshape((-1,3)) @ t 
+
+    r = torch.vstack((n_q - n_t, d_q - d_t))
+    return r
+
+
+def torch_GN_register(source, target, device):
+    """Register source to target scan using Gauss Newton approach with pytorch Jacobian computation
+    
+    Parameters
+    ----------
+    source : Scan
+        Source scan
+    target : Scan
+        Target scan
+    device : str
+        Pytorch device (i.e. 'cuda' or 'cpu')
+
+    Returns
+    -------
+    R_hat : np.array (3 x 3)
+        Estimated rotation
+    t_hat : np.array (3) 
+        Estimated translation
+    
+    """
+    # Find correspondences and extract features
+    correspondences = get_correspondences(source, target)
+    n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
+
+    # Convert features to torch tensors
+    n_s = torch.from_numpy(n_s).float().to(device)
+    d_s = torch.from_numpy(d_s).float().to(device)
+    n_t = torch.from_numpy(n_t).float().to(device)
+    d_t = torch.from_numpy(d_t).float().to(device)
+
+    # Randomly initialize initial estimate
+    q = torch.randn(6, 1, dtype=torch.float32, device=device)
+
+    # Gauss-Newton
+    n_iters = 10
+    lmbda = 1e-3
+    mu = 5e-1
+
+    for i in range(n_iters):
+        r = torch_residual(q, n_s, d_s, n_t, d_t)
+        # Compute Jacobian with pytorch
+        J = F.jacobian(torch_residual, (q, n_s, d_s, n_t, d_t), vectorize=True)[0].reshape((-1,6))
+        q = q - mu * torch.linalg.inv(J.T @ J + lmbda * torch.eye(6, device=device)) @ J.T @ r
+
+    R_hat = so3_exp_map(q[3:].T).cpu().detach().numpy()[0]
+    t_hat = q[:3].cpu().detach().numpy()
 
     return R_hat, t_hat
