@@ -47,22 +47,15 @@ def get_correspondences(source, target, norm_thresh=0.3, dist_thresh=5.0):
         p_rect = Rectangle(p_proj[:,0:2])
 
         for j, q in enumerate(Q):
-
             # Check if 2 planes are approximately coplanar
-            #print("  norm check: ", np.linalg.norm(p.normal - q.normal))
             if np.linalg.norm(p.normal - q.normal) < norm_thresh:
-                
                 # Check plane to plane distance    
-                #print("  dist check: ", plane_to_plane_dist(p, q))
                 if plane_to_plane_dist(p, q) < dist_thresh:
                     # Project q onto p's basis
                     q_proj = (np.linalg.inv(p.basis) @ q.vertices.T).T
                     # Check overlap
                     q_rect = Rectangle(q_proj[:,0:2])
-                    print(f" ({i}, {j}) overlap check")
-                    print("  p_rect: \n", p_rect.vertices, "\n  q_rect: \n", q_rect.vertices)
                     if p_rect.is_intersecting(q_rect):    
-                        print("  overlap check passed")
                         # Add the correspondence
                         correspondences.append((i,j))
         
@@ -341,13 +334,17 @@ def GN_register(source, target):
     q = np.vstack((t, theta*u))
 
     # Gauss-Newton
-    n_iters = 5
-    lmbda = 1e-3
+    n_iters = 10
+    lmbda = 1e-6
+    mu = 5e-1
 
     for i in range(n_iters):
         r, n_q = residual(n_s, d_s, n_t, d_t, q)
         J = jacobian(n_s, n_q)
-        q = q + np.linalg.inv(J.T @ J + lmbda * np.eye(6)) @ J.T @ r
+        q = q - mu * np.linalg.inv(J.T @ J + lmbda * np.eye(6)) @ J.T @ r
+    
+    r, _ = residual(n_s, d_s, n_t, d_t, q)
+    print("final loss: ", np.linalg.norm(r)**2)
 
     R_hat = expmap(q[3:].flatten())
     t_hat = q[:3]

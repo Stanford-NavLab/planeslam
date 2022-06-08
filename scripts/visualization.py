@@ -19,10 +19,10 @@ if __name__ == "__main__":
 
     # Read in point cloud data
     print("Reading in AirSim data...")
-    binpath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'blocks_60_samples_loop_closure', 'lidar', 'Drone0')
+    binpath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'blocks_20_samples_1', 'lidar', 'Drone0')
     PCs = io.read_lidar_bin(binpath)
     # Read in ground-truth poses (in drone local frame)
-    posepath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'blocks_60_samples_loop_closure', 'poses', 'Drone0')
+    posepath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'blocks_20_samples_1', 'poses', 'Drone0')
     drone_positions, drone_orientations = io.read_poses(posepath)
 
     # Extract scans and planesets
