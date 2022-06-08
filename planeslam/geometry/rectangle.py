@@ -60,6 +60,22 @@ class Rectangle:
         self.max = (R @ self.max[:,None]).T[0] + t 
 
 
+    def edges(self):
+        """Return edges of rectangle
+
+        Ordered CCW starting from (v1->v2)
+        
+        Returns
+        -------
+        np.array (4 x 2)
+            Edge of rectangle in rows
+        
+        """
+        V = self.vertices
+        d = np.diff(V, axis=0, append=V[0][None,:])
+        return np.roll(d, -1, axis=0)  
+
+
     def halfplanes(self):
         """Compute the halfplane representation of this rectangle
 
@@ -74,14 +90,16 @@ class Rectangle:
 
         """
         V = self.vertices
-        d = np.diff(V, axis=0, append=V[0][None,:])
-        A = np.roll(d, -1, axis=0)  # TODO: normalize A?
+        A = self.edges() / np.linalg.norm(self.edges(), axis=1)[:,None]
         b = block_diag(*list(A)) @ np.reshape(V, (8,1))
         return A, b
 
 
     def is_intersecting(self, rect):
         """Check if this rectangle intersects with another rectangle
+
+        Use separating axis test: check if there is a line which separates the
+        two rectangles.
 
         Parameters
         ----------
