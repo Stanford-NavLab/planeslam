@@ -110,18 +110,19 @@ class Rectangle:
         bool : True if rectangle intersects with other rectangle
         
         """
-        # Check if any of the other rectangle's vertices lie within this rectangle vice versa
+        # Check which side of this rectangles edges the other rectangle's vertices lie on and vice versa
         A, b = self.halfplanes()
-        check_other_in = A @ rect.vertices.T >= b
-        check_other_in = np.all(check_other_in, axis=0)
-        check_other_in = np.any(check_other_in)
+        check_self = A @ rect.vertices.T <= b
+        check_self = np.all(check_self, axis=1)
+        check_self = np.any(check_self)  # are any sides of self rectangle a separating axis
 
         A, b = rect.halfplanes()
-        check_self_in = A @ self.vertices.T >= b
-        check_self_in = np.all(check_self_in, axis=0)
-        check_self_in = np.any(check_self_in)
+        check_other = A @ self.vertices.T <= b
+        check_other = np.all(check_other, axis=1)
+        check_other = np.any(check_other) # are any sides of other rectangle a separating axis
 
-        return check_other_in | check_self_in
+        # If there is a separating axis, then rectangles are not intersecting
+        return not (check_self | check_other) 
 
 
     def plot(self, ax=None, color='b'):
