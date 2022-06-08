@@ -5,15 +5,19 @@ Functions for plane-based registration.
 """
 
 import numpy as np
-import torch
-import torch.autograd.functional as F
-from pytorch3d.transforms.so3 import so3_exp_map
+try:
+    import torch
+    import torch.autograd.functional as F
+    from pytorch3d.transforms.so3 import so3_exp_map
+except ModuleNotFoundError:
+    print("torch libraries not found, skipping import")
 
 from planeslam.geometry.plane import plane_to_plane_dist
 from planeslam.geometry.util import skew
+from planeslam.geometry.rectangle import Rectangle
 
 
-def get_correspondences(source, target, norm_thresh=0.1, dist_thresh=5.0):
+def get_correspondences(source, target, norm_thresh=0.3, dist_thresh=5.0):
     """Get correspondences between two scans
 
     Parameters
@@ -35,18 +39,32 @@ def get_correspondences(source, target, norm_thresh=0.1, dist_thresh=5.0):
     """
     P = source.planes
     Q = target.planes
-    #correspondences = {k: [] for k in range(len(P))}
     correspondences = []
 
     for i, p in enumerate(P):
-        for j, q in enumerate(Q): 
+        # Compute projection of p onto it's own basis
+        p_proj = (np.linalg.inv(p.basis) @ p.vertices.T).T
+        p_rect = Rectangle(p_proj[:,0:2])
+
+        for j, q in enumerate(Q):
+
             # Check if 2 planes are approximately coplanar
+            #print("  norm check: ", np.linalg.norm(p.normal - q.normal))
             if np.linalg.norm(p.normal - q.normal) < norm_thresh:
+                
                 # Check plane to plane distance    
+                #print("  dist check: ", plane_to_plane_dist(p, q))
                 if plane_to_plane_dist(p, q) < dist_thresh:
-                    # Add the correspondence
-                    #correspondences[i].append(j)
-                    correspondences.append((i,j))
+                    # Project q onto p's basis
+                    q_proj = (np.linalg.inv(p.basis) @ q.vertices.T).T
+                    # Check overlap
+                    q_rect = Rectangle(q_proj[:,0:2])
+                    print(f" ({i}, {j}) overlap check")
+                    print("  p_rect: \n", p_rect.vertices, "\n  q_rect: \n", q_rect.vertices)
+                    if p_rect.is_intersecting(q_rect):    
+                        print("  overlap check passed")
+                        # Add the correspondence
+                        correspondences.append((i,j))
         
     return correspondences
 

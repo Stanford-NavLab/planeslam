@@ -63,6 +63,8 @@ class Rectangle:
     def halfplanes(self):
         """Compute the halfplane representation of this rectangle
 
+        Matrix A and vector b such that {x | A*x >= b} represents the rectangle
+
         Returns
         -------
         A : np.array (4 x 2)
@@ -90,12 +92,19 @@ class Rectangle:
         bool : True if rectangle intersects with other rectangle
         
         """
-        # Check if any of the other rectangle's vertices lie within this rectangle
+        # Check if any of the other rectangle's vertices lie within this rectangle vice versa
         A, b = self.halfplanes()
-        check = A @ rect.vertices.T >= b
-        check = np.all(check, axis=0)
-        return np.any(check)
-    
+        check_other_in = A @ rect.vertices.T >= b
+        check_other_in = np.all(check_other_in, axis=0)
+        check_other_in = np.any(check_other_in)
+
+        A, b = rect.halfplanes()
+        check_self_in = A @ self.vertices.T >= b
+        check_self_in = np.all(check_self_in, axis=0)
+        check_self_in = np.any(check_self_in)
+
+        return check_other_in | check_self_in
+
 
     def plot(self, ax=None, color='b'):
         """Plot
