@@ -19,10 +19,10 @@ if __name__ == "__main__":
 
     # Read in point cloud data
     print("Reading in AirSim data...")
-    binpath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'blocks_20_samples_1', 'lidar', 'Drone0')
+    binpath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'blocks_60_samples_loop_closure', 'lidar', 'Drone0')
     PCs = io.read_lidar_bin(binpath)
     # Read in ground-truth poses (in drone local frame)
-    posepath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'blocks_20_samples_1', 'poses', 'Drone0')
+    posepath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'blocks_60_samples_loop_closure', 'poses', 'Drone0')
     drone_positions, drone_orientations = io.read_poses(posepath)
 
     # Extract scans and planesets
@@ -33,20 +33,27 @@ if __name__ == "__main__":
     print("Extracting scans...")
     for i in range(num_scans):
         scans[i] = pc_to_scan(PCs[i])
+        print(i, "...", end = '')
         # R = quat_to_rot_mat(drone_orientations[i,:])
         # t = drone_positions[i,:]
         # scans[i].transform(R, t)
         # PCs[i] = (R @ PCs[i].T).T + t
     
     plt.ion()
-    fig = plt.figure(figsize=(15,8))
-    ax1 = fig.add_subplot(1, 2, 1, projection='3d')
-    ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+    fig = plt.figure(figsize=(12,12))
+    ax1 = fig.add_subplot(2, 2, 1, projection='3d')
+    ax2 = fig.add_subplot(2, 2, 2, projection='3d')
+    ax3 = fig.add_subplot(2, 2, 3, projection='3d')
+    ax4 = fig.add_subplot(2, 2, 4, projection='3d')
 
     ax1.set_xlabel("X")
     ax1.set_ylabel("Y")
     ax2.set_xlabel("X")
     ax2.set_ylabel("Y")
+    ax3.set_xlabel("X")
+    ax3.set_ylabel("Y")
+    ax4.set_xlabel("X")
+    ax4.set_ylabel("Y")
     
     print("Beginning visualization...")
     for i in range(len(scans)-1):
@@ -58,15 +65,25 @@ if __name__ == "__main__":
 
         ax1.clear()
         ax2.clear()
+        ax3.clear()
+        ax4.clear()
 
-        scans[i].plot(ax1)
-        scans[i+1].plot(ax2)
-        color_legend(ax1, len(scans[i].planes))
-        color_legend(ax2, len(scans[i+1].planes))
+        # Plot point clouds
+        ax1.scatter(PCs[i][:,0], PCs[i][:,1], PCs[i][:,2], marker='.', s=1)  
+        ax2.scatter(PCs[i+1][:,0], PCs[i+1][:,1], PCs[i+1][:,2], marker='.', s=1)  
+
         ax1.set_box_aspect((np.ptp(PCs[i][:,0]), np.ptp(PCs[i][:,1]), np.ptp(PCs[i][:,2])))
         ax2.set_box_aspect((np.ptp(PCs[i+1][:,0]), np.ptp(PCs[i+1][:,1]), np.ptp(PCs[i+1][:,2])))
         ax1.set_title("Scan "+str(i))
         ax2.set_title("Scan "+str(i+1))
+
+        # Plot scans
+        scans[i].plot(ax3)
+        scans[i+1].plot(ax4)
+        color_legend(ax3, len(scans[i].planes))
+        color_legend(ax4, len(scans[i+1].planes))
+        ax3.set_box_aspect((np.ptp(PCs[i][:,0]), np.ptp(PCs[i][:,1]), np.ptp(PCs[i][:,2])))
+        ax4.set_box_aspect((np.ptp(PCs[i+1][:,0]), np.ptp(PCs[i+1][:,1]), np.ptp(PCs[i+1][:,2])))
         
         correspondences = get_correspondences(scans[i+1], scans[i])
         print("Correspondences: ", correspondences)

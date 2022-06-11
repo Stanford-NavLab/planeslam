@@ -282,7 +282,7 @@ def decoupled_register(source, target):
     -------
     R_hat : np.array (3 x 3)
         Estimated rotation
-    t_hat : np.array (3) 
+    t_hat : np.array (3 x 1) 
         Estimated translation
 
     """
@@ -319,7 +319,7 @@ def GN_register(source, target):
     -------
     R_hat : np.array (3 x 3)
         Estimated rotation
-    t_hat : np.array (3) 
+    t_hat : np.array (3 x 1) 
         Estimated translation
 
     """
@@ -405,13 +405,17 @@ def torch_GN_register(source, target, device):
     -------
     R_hat : np.array (3 x 3)
         Estimated rotation
-    t_hat : np.array (3) 
+    t_hat : np.array (3 x 1) 
         Estimated translation
     
     """
     # Find correspondences and extract features
     correspondences = get_correspondences(source, target)
     n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
+
+    # If there are no correspondences, just return identity
+    if len(correspondences) == 0:
+        return np.eye(3), np.zeros((3,1))
 
     # Convert features to torch tensors
     n_s = torch.from_numpy(n_s).float().to(device)
@@ -420,7 +424,8 @@ def torch_GN_register(source, target, device):
     d_t = torch.from_numpy(d_t).float().to(device)
 
     # Randomly initialize initial estimate
-    q = torch.randn(6, 1, dtype=torch.float32, device=device)
+    #q = torch.randn(6, 1, dtype=torch.float32, device=device)
+    q = torch.zeros(6, 1, dtype=torch.float32, device=device)
 
     # Gauss-Newton
     n_iters = 10
@@ -458,7 +463,7 @@ def torch_register(source, target, device):
     -------
     R_hat : np.array (3 x 3)
         Estimated rotation
-    t_hat : np.array (3) 
+    t_hat : np.array (3 x 1) 
         Estimated translation
     
     """
@@ -473,7 +478,8 @@ def torch_register(source, target, device):
     d_t = torch.from_numpy(d_t).float().to(device)
 
     # Initial transformation
-    q_init = torch.randn(6, 1, dtype=torch.float32, device=device)
+    #q_init = torch.randn(6, 1, dtype=torch.float32, device=device)
+    q_init = torch.zeros(6, 1, dtype=torch.float32, device=device)
 
     # Instantiate copy of the initialization 
     q = q_init.clone().detach()
