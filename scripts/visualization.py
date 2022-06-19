@@ -51,6 +51,8 @@ if __name__ == "__main__":
     ax3.set_ylabel("Y")
     ax4.set_xlabel("X")
     ax4.set_ylabel("Y")
+
+    merged = scans[0]
     
     print("Beginning visualization...")
     for i in range(len(scans)-1):
@@ -75,7 +77,9 @@ if __name__ == "__main__":
         ax2.set_title("Scan "+str(i+1))
 
         # Plot scans
-        scans[i].plot(ax3)
+        #scans[i].plot(ax3)
+        merged = merged.merge(scans[i+1])
+        merged.plot(ax3)
         scans[i+1].plot(ax4)
         color_legend(ax3, len(scans[i].planes))
         color_legend(ax4, len(scans[i+1].planes))
