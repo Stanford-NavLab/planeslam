@@ -8,7 +8,7 @@ import os
 import sys
 
 from planeslam.geometry.util import quat_to_rot_mat
-from planeslam.general import plot_3D_setup, color_legend
+from planeslam.general import plot_3D_setup, color_legend, NED_to_ENU
 import planeslam.io as io
 from planeslam.extraction import pc_to_planes
 from planeslam.scan import pc_to_scan
@@ -19,10 +19,10 @@ if __name__ == "__main__":
 
     # Read in point cloud data
     print("Reading in AirSim data...")
-    binpath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'blocks_60_samples_loop_closure', 'lidar', 'Drone0')
+    binpath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'building_99_60_samples_kitchen_corridor', 'lidar', 'Drone0')
     PCs = io.read_lidar_bin(binpath)
     # Read in ground-truth poses (in drone local frame)
-    posepath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'blocks_60_samples_loop_closure', 'poses', 'Drone0')
+    posepath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'building_99_60_samples_kitchen_corridor', 'poses', 'Drone0')
     drone_positions, drone_orientations = io.read_poses(posepath)
 
     # Extract scans and planesets
@@ -32,12 +32,9 @@ if __name__ == "__main__":
 
     print("Extracting scans...")
     for i in range(num_scans):
+        PCs[i] = NED_to_ENU(PCs[i])
         scans[i] = pc_to_scan(PCs[i])
-        print(i, "...", end = '')
-        # R = quat_to_rot_mat(drone_orientations[i,:])
-        # t = drone_positions[i,:]
-        # scans[i].transform(R, t)
-        # PCs[i] = (R @ PCs[i].T).T + t
+        print(i, "...")
     
     plt.ion()
     fig = plt.figure(figsize=(12,12))
