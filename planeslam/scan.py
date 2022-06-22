@@ -214,3 +214,32 @@ def pc_to_scan(P):
     # Form scan topology
     planes, vertices, faces = scan_from_clusters(mesh, clusters, avg_normals)
     return Scan(planes, vertices, faces)
+
+
+def pc_extraction(P):
+    """Point cloud to scan
+
+    Parameters
+    ----------
+    P : np.array (n_pts x 3)
+        Unorganized point cloud
+
+    Returns
+    -------
+    ScanRep
+        Scan representing input point cloud
+    
+    """
+    # Downsample
+    P = downsample(P, factor=5, axis=0)
+
+    # Create the mesh
+    mesh = LidarMesh(P)
+    # Prune the mesh
+    mesh.prune(10)
+    # Cluster the mesh with graph search
+    clusters, avg_normals = cluster_mesh_graph_search(mesh)
+
+    # Form scan topology
+    planes, vertices, faces = scan_from_clusters(mesh, clusters, avg_normals)
+    return mesh, clusters, Scan(planes, vertices, faces)

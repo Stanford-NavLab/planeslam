@@ -109,8 +109,8 @@ def extract_corresponding_features(source, target, correspondences):
     return n_s, d_s, n_t, d_t
 
 
-def expmap(w):
-    """Exponential map w -> R
+def so3_expmap(w):
+    """SO(3) exponential map w -> R
     
     Parameters
     ----------
@@ -132,6 +132,31 @@ def expmap(w):
         R = np.eye(3) + np.sin(theta) * skew(u) + (1-np.cos(theta)) * np.linalg.matrix_power(skew(u), 2) 
     
     return R
+
+
+def se3_expmap(v):
+    """SE(3) exponential map v -> T
+    
+    Parameters
+    ----------
+    v : np.array (3)
+        Parameterized rotation (in so(3))
+
+    Returns
+    -------
+    R : np.array (3 x 3)
+        Rotation matrix (in SO(3))
+    
+    """
+    t = v[:3]
+    w = v[3:]
+    theta = np.linalg.norm(w)
+
+    R = so3_expmap(w) 
+
+    V = np.eye(3) + ((1-np.cos(theta))/theta**2) * skew(w) + ((theta-np.sin(theta))/theta**3) * np.linalg.matrix_power(skew(w), 2)
+    
+    return np.vstack((np.hstack((R, (V@t)[:,None])), np.array([[0, 0, 0, 1]])))
 
 
 def transform_normals(n, q):
@@ -156,7 +181,7 @@ def transform_normals(n, q):
     N = int(len(n) / 3)
 
     # Extract rotation matrix R from q 
-    R = expmap(q[3:].flatten())
+    R = so3_expmap(q[3:].flatten())
 
     # Apply R to n
     n = n.reshape((3, N), order='F')
@@ -165,40 +190,7 @@ def transform_normals(n, q):
     return n
 
 
-def residual(n_s, d_s, n_t, d_t, q):
-    """Residual for Gauss-Newton
-
-    Parameters
-    ----------
-    n_s : np.array (3N x 1)
-        Stacked vector of source normals
-    d_s : np.array (N x 1)
-        Stacked vector of source distances
-    n_t : np.array (3N x 1)
-        Stacked vector of target normals
-    d_t : np.array (N x 1)
-        Stacked vector of target distances
-    q : np.array (6 x 1)
-        Parameterized transformation
-
-    Returns
-    -------
-    r : np.array (4N x 1)
-        Stacked vector of plane-to-plane error residuals
-    n_q : np.array (3N x 1)
-        Source normals transformed by q
-    
-    """
-    n_q = transform_normals(n_s, q)
-
-    # Transform distances
-    t = q[:3]
-    d_q = d_s + n_q.reshape((-1,3)) @ t 
-
-    r = np.vstack((n_q - n_t, d_q - d_t))
-    return r, n_q
-
-# def residual(n_s, d_s, n_t, d_t, R, t):
+# def residual(n_s, d_s, n_t, d_t, q):
 #     """Residual for Gauss-Newton
 
 #     Parameters
@@ -222,19 +214,54 @@ def residual(n_s, d_s, n_t, d_t, q):
 #         Source normals transformed by q
     
 #     """
-#     assert len(n_s) % 3 == 0, "Invalid normals vector, length should be multiple of 3"
-#     N = int(len(n_s) / 3)
-
-#     # Transform normals
-#     n_q = n_s.reshape((3, N), order='F')
-#     n_q = R @ n_q
-#     n_q = n_q.reshape((3*N, 1), order='F')
+#     n_q = transform_normals(n_s, q)
 
 #     # Transform distances
+#     t = q[:3]
 #     d_q = d_s + n_q.reshape((-1,3)) @ t 
 
 #     r = np.vstack((n_q - n_t, d_q - d_t))
 #     return r, n_q
+
+def residual(n_s, d_s, n_t, d_t, T):
+    """Residual for Gauss-Newton
+
+    Parameters
+    ----------
+    n_s : np.array (3N x 1)
+        Stacked vector of source normals
+    d_s : np.array (N x 1)
+        Stacked vector of source distances
+    n_t : np.array (3N x 1)
+        Stacked vector of target normals
+    d_t : np.array (N x 1)
+        Stacked vector of target distances
+    T : np.array (6 x 1)
+        Transformation matrix
+
+    Returns
+    -------
+    r : np.array (4N x 1)
+        Stacked vector of plane-to-plane error residuals
+    n_q : np.array (3N x 1)
+        Source normals transformed by q
+    
+    """
+    assert len(n_s) % 3 == 0, "Invalid normals vector, length should be multiple of 3"
+    N = int(len(n_s) / 3)
+    R = T[:3,:3]
+    t = T[:3,3][:,None]
+
+    # Transform normals
+    n_q = n_s.reshape((3, N), order='F')
+    n_q = R @ n_q
+    n_q = n_q.reshape((3*N, 1), order='F')
+
+    # Transform distances
+    d_q = d_s + n_q.reshape((-1,3)) @ t 
+
+    r = np.vstack((n_q - n_t, d_q - d_t))
+    return r, n_q
     
 
 def jacobian(n_s, n_q):
@@ -261,8 +288,8 @@ def jacobian(n_s, n_q):
     for i in range(N):
         Rn_i = n_q[3*i:3*i+3].flatten()
         J[4*i:4*i+3,0:3] = np.zeros((3,3))
-        J[4*i:4*i+3,3:6] = skew(Rn_i)
-        J[4*i+3,0:3] = -Rn_i
+        J[4*i:4*i+3,3:6] = -skew(Rn_i)
+        J[4*i+3,0:3] = Rn_i
         J[4*i+3,3:6] = np.zeros(3)
     
     return J
