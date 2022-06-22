@@ -516,13 +516,14 @@ def torch_register(source, target, device):
     loss = torch.linalg.norm(r)**2
 
     # Init the optimizer
-    optimizer = torch.optim.SGD([q], lr=0.1, momentum=0.5)
+    optimizer = torch.optim.SGD([q], lr=0.01, momentum=0.0)
 
     # Run the optimization
-    loss_target = 1e-3  # target loss to achieve (under)
+    prev_loss = -loss
+    d_loss = 1
     it = 0
     max_it = 250
-    while loss > loss_target and it < max_it:
+    while d_loss > 1e-5 and it < max_it:
         # Re-init the optimizer gradients
         optimizer.zero_grad()
 
@@ -530,7 +531,11 @@ def torch_register(source, target, device):
         r = torch_residual(q, n_s, d_s, n_t, d_t)
         loss = torch.linalg.norm(r)**2
 
+        d_loss = torch.abs(prev_loss - loss)
+
         loss.backward(retain_graph=True)
+
+        prev_loss = loss
         
         # Apply the gradients
         optimizer.step()

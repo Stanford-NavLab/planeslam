@@ -8,7 +8,7 @@ import os
 import sys
 
 from planeslam.geometry.util import quat_to_rot_mat
-from planeslam.general import plot_3D_setup, color_legend
+from planeslam.general import plot_3D_setup, color_legend, NED_to_ENU
 import planeslam.io as io
 from planeslam.scan import pc_extraction
 from planeslam.registration import get_correspondences
@@ -19,10 +19,10 @@ if __name__ == "__main__":
 
     # Read in point cloud data
     print("Reading in AirSim data...")
-    binpath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'blocks_60_samples_loop_closure', 'lidar', 'Drone0')
+    binpath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'building_99_60_samples_kitchen_corridor', 'lidar', 'Drone0')
     PCs = io.read_lidar_bin(binpath)
     # Read in ground-truth poses (in drone local frame)
-    posepath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'blocks_60_samples_loop_closure', 'poses', 'Drone0')
+    posepath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'building_99_60_samples_kitchen_corridor', 'poses', 'Drone0')
     drone_positions, drone_orientations = io.read_poses(posepath)
 
     # Extract scans and planesets
