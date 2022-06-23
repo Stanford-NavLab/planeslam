@@ -5,7 +5,7 @@
 import numpy as np
 
 
-def cluster_mesh_graph_search(mesh, normal_match_thresh=0.17, min_cluster_size=20):
+def cluster_mesh_graph_search(mesh, normal_match_thresh=0.3, min_cluster_size=20):
     """Cluster mesh with graph search
     
     Parameters

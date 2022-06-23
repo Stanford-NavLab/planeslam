@@ -19,10 +19,10 @@ if __name__ == "__main__":
 
     # Read in point cloud data
     print("Reading in AirSim data...")
-    binpath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'building_99_60_samples_kitchen_corridor', 'lidar', 'Drone0')
+    binpath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'blocks_60_samples_loop_closure', 'lidar', 'Drone0')
     PCs = io.read_lidar_bin(binpath)
     # Read in ground-truth poses (in drone local frame)
-    posepath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'building_99_60_samples_kitchen_corridor', 'poses', 'Drone0')
+    posepath = os.path.join(os.getcwd(),'..', 'data', 'airsim', 'blocks_60_samples_loop_closure', 'poses', 'Drone0')
     drone_positions, drone_orientations = io.read_poses(posepath)
 
     # Extract scans and planesets
@@ -31,10 +31,10 @@ if __name__ == "__main__":
     meshes = num_scans * [None]
     clusters = num_scans * [None]
 
-    print("Extracting scans...")
-    for i in range(num_scans):
-        meshes[i], clusters[i], scans[i] = pc_extraction(PCs[i])
-        print(i, "...")
+    # print("Extracting scans...")
+    # for i in range(num_scans):
+    #     meshes[i], clusters[i], scans[i] = pc_extraction(PCs[i])
+    #     print(i, "...")
         # R = quat_to_rot_mat(drone_orientations[i,:])
         # t = drone_positions[i,:]
         # scans[i].transform(R, t)
@@ -69,6 +69,8 @@ if __name__ == "__main__":
     ax8.set_ylabel("Y")
 
     #merged = scans[0]
+
+    meshes[0], clusters[0], scans[0] = pc_extraction(PCs[0])
     
     print("Beginning visualization...")
     for i in range(len(scans)-1):
@@ -77,6 +79,9 @@ if __name__ == "__main__":
         except KeyboardInterrupt: 
             print("Exiting...")
             sys.exit(0)
+
+        print("Extracting...")
+        meshes[i+1], clusters[i+1], scans[i+1] = pc_extraction(PCs[i+1])
 
         ax1.clear()
         ax2.clear()

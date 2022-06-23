@@ -207,7 +207,7 @@ def pc_to_scan(P):
     # Create the mesh
     mesh = LidarMesh(P)
     # Prune the mesh
-    mesh.prune(10)
+    mesh.prune(edge_len_lim=10)
     # Cluster the mesh with graph search
     clusters, avg_normals = cluster_mesh_graph_search(mesh)
 
@@ -231,12 +231,12 @@ def pc_extraction(P):
     
     """
     # Downsample
-    P = downsample(P, factor=5, axis=0)
+    #P = downsample(P, factor=5, axis=0)
 
     # Create the mesh
     mesh = LidarMesh(P)
     # Prune the mesh
-    mesh.prune(10)
+    mesh.prune(edge_len_lim=10)
     # Cluster the mesh with graph search
     clusters, avg_normals = cluster_mesh_graph_search(mesh)
 
