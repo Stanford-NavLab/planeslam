@@ -174,12 +174,12 @@ def scan_from_pcl_clusters(P, clusters, normals_arr, vertex_merge_thresh=1.0):
     """
     # TODO: merge planes which are inside other planes into each other
 
+    planes = []
     vertices = []
     faces = []  # Sets of 4 vertex indices
-    normals = []
     vertex_counter = 0
 
-    for i, c in enumerate(clusters):
+    for c in clusters:
         idx = c.indices  
         cluster_pts = P[idx,:]
 
@@ -188,9 +188,8 @@ def scan_from_pcl_clusters(P, clusters, normals_arr, vertex_merge_thresh=1.0):
 
         # Extract bounding plane
         plane_pts = bd_plane_from_pts(cluster_pts, n)
-
-        new_face = 4 * [None]
-        keep_mask = 4 * [True]
+        new_face = -np.ones(4, dtype=int)  # New face indices
+        merge_mask = np.zeros(4, dtype=bool)  # Which of the new plane points to merge with existing points
         
         # Check if this plane shares any vertices with previous planes
         for i in range(len(vertices)):
@@ -198,22 +197,35 @@ def scan_from_pcl_clusters(P, clusters, normals_arr, vertex_merge_thresh=1.0):
             best_match = np.argsort(dists)[0]
             if dists[best_match] < vertex_merge_thresh:
                 new_face[best_match] = i
-                keep_mask[best_match] = False
-        
+                merge_mask[best_match] = True
+
+        # If shared, adjust plane accordingly
+        if sum(merge_mask) > 0:
+            if sum(merge_mask) == 2:
+                anchor_idxs = new_face[new_face!=-1]
+                anchor_verts = np.asarray(vertices)[anchor_idxs]
+                new_plane = merge_plane(merge_mask, anchor_verts, plane_pts, n)
+
+                vertices += list(new_plane[~merge_mask,:])
+                planes.append(BoundedPlane(new_plane))
+
+        # Otherwise, add all new vertices
+        else:
+            vertices += list(plane_pts)
+            planes.append(BoundedPlane(plane_pts))
+
+        # Set new face indices
         for i in range(4):
-            if new_face[i] is None:
+            if new_face[i] == -1:
                 new_face[i] = vertex_counter
                 vertex_counter += 1
 
-        vertices += list(plane_pts[keep_mask,:])
         faces.append(new_face)
-        normals.append(n)
 
     vertices = np.asarray(vertices)
     faces = np.asarray(faces)
-    normals = np.asarray(normals)
     
-    return vertices, faces, normals
+    return planes, vertices, faces
 
 
 def planes_from_clusters(mesh, clusters, avg_normals):
@@ -227,8 +239,6 @@ def planes_from_clusters(mesh, clusters, avg_normals):
         Point indices grouped into clusters (based on surface normals and locality)
     avg_normals : list of np.array (3 x 1)
         Average normal vector for each cluster of points
-    vertex_merge_thresh : float
-        Distance between vertices in order to merge them
 
     Returns
     -------
@@ -244,6 +254,42 @@ def planes_from_clusters(mesh, clusters, avg_normals):
     for i, c in enumerate(clusters):  
         n = avg_normals[i][:,None]
         cluster_pts = mesh_cluster_pts(mesh, c)  # Extract points from cluster
+        
+        # Extract bounding plane
+        plane_pts = bd_plane_from_pts(cluster_pts, n)
+
+        bplane = BoundedPlane(plane_pts)
+        planes.append(bplane)
+    
+    return planes
+
+
+def planes_from_pcl_clusters(P, clusters, normals_arr):
+    """Convert clustered points to a set of planes
+
+    Parameters
+    ----------
+    P : np.array (n_pts x 3)
+        Point cloud points
+    clusters : PointIndices
+        Point indices grouped into clusters using PCL region growing
+    normals_arr : np.array (n_pts x 3)
+        Array of normal vectors for each point
+
+    Returns
+    -------
+    planes : list of BoundedPlanes
+        List of planes
+
+    """
+    planes = []
+
+    for c in clusters:  
+        idx = c.indices  
+        cluster_pts = P[idx,:]
+
+        # Compute average normal
+        n = np.mean(normals_arr[idx,:], axis=0)[:,None]
         
         # Extract bounding plane
         plane_pts = bd_plane_from_pts(cluster_pts, n)
