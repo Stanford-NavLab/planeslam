@@ -182,6 +182,7 @@ def scan_from_pcl_clusters(P, clusters, normals_arr, vertex_merge_thresh=1.0):
     for c in clusters:
         idx = c.indices  
         cluster_pts = P[idx,:]
+        print("cluster pts: ", cluster_pts)
 
         # Compute average normal
         n = np.mean(normals_arr[idx,:], axis=0)[:,None]
@@ -205,6 +206,7 @@ def scan_from_pcl_clusters(P, clusters, normals_arr, vertex_merge_thresh=1.0):
                 anchor_idxs = new_face[new_face!=-1]
                 anchor_verts = np.asarray(vertices)[anchor_idxs]
                 new_plane = merge_plane(merge_mask, anchor_verts, plane_pts, n)
+                print("new plane: ", new_plane)
 
                 vertices += list(new_plane[~merge_mask,:])
                 planes.append(BoundedPlane(new_plane))
@@ -212,6 +214,7 @@ def scan_from_pcl_clusters(P, clusters, normals_arr, vertex_merge_thresh=1.0):
         # Otherwise, add all new vertices
         else:
             vertices += list(plane_pts)
+            print("plane pts: ", plane_pts)
             planes.append(BoundedPlane(plane_pts))
 
         # Set new face indices

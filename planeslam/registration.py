@@ -373,7 +373,7 @@ def GN_register(source, target):
     r, _ = residual(n_s, d_s, n_t, d_t, q)
     print("final loss: ", np.linalg.norm(r)**2)
 
-    R_hat = expmap(q[3:].flatten())
+    R_hat = so3_expmap(q[3:].flatten())
     t_hat = q[:3]
 
     return R_hat, t_hat
@@ -545,5 +545,107 @@ def torch_register(source, target, device):
 
     R_hat = so3_exp_map(q[3:].T).cpu().detach().numpy()[0]
     t_hat = q[:3].cpu().detach().numpy()
+
+    return R_hat, t_hat
+
+
+def so3_residual(R, n_s, n_t):
+    """SO(3) Residual
+
+    Residual for rotation only SO(3) registration
+
+    Parameters
+    ----------
+    R : np.array (3 x 3)
+        Current rotation estimate
+    n_s : np.array (3N x 1)
+        Source normal vectors
+    n_t : np.array (3N x 1)
+        Target normal vectors
+
+    Returns
+    -------
+    r : np.array (3N x 1)
+        Residual vector
+    n_q : np.array (3N x 1)
+        Transformed source normals
+    
+    """
+    n_q = (R @ n_s.reshape((3, -1), order='F')).reshape((-1, 1), order='F')
+    r = n_q - n_t
+    return r, n_q
+
+
+def so3_jacobian(n_q):
+    """ SO(3) Jacobian
+
+    Jacobian for rotation only SO(3) registration
+
+    Parameters
+    ----------
+    n_q : np.array (3N x 1)
+        Transformed source normals
+
+    Returns
+    -------
+    J : np.array (3N x 3)
+        Jacobian matrix
+    
+    """
+    N = int(len(n_q) / 3)
+    J = np.empty((len(n_q), 3))
+
+    for i in range(N):
+        Rn_i =  n_q[3*i:3*i+3].flatten()
+        J[3*i:3*i+3,:] = -skew(Rn_i)
+
+    return J
+
+
+def decoupled_GN_register(source, target):
+    """Decoupled Gauss Newton
+
+    Register source to target scan by first estimating rotation only using Gauss Newton,
+    then solving for translation.
+    
+    Parameters
+    ----------
+    source : Scan
+        Source scan
+    target : Scan
+        Target scan
+
+    Returns
+    -------
+    R_hat : np.array (3 x 3)
+        Estimated rotation
+    t_hat : np.array (3 x 1) 
+        Estimated translation
+
+    """
+    # Find correspondences and extract features
+    correspondences = get_correspondences(source, target)
+    n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
+
+    # Rotation estimation
+    R_hat = np.eye(3)
+
+    n_iters = 5
+    lmbda = 1e-8
+    mu = 1.0
+
+    for i in range(n_iters):
+        r, n_q = so3_residual(R_hat, n_s, n_t)
+        #print("loss: ", np.linalg.norm(r)**2)
+        J = so3_jacobian(n_q)
+        dw = - mu * np.linalg.inv(J.T @ J + lmbda*np.eye(3)) @ J.T @ r
+        R_hat = so3_expmap(dw.flatten()) @ R_hat
+    
+    r, _ = so3_residual(R_hat, n_s, n_t)
+    print("final rotation loss: ", np.linalg.norm(r)**2)
+
+    # Translation estimation
+    Rn_s = (R_hat @ n_s.reshape((3, -1), order='F'))
+    t_hat = np.linalg.lstsq(Rn_s.T, d_s - d_t, rcond=None)[0]
 
     return R_hat, t_hat
