@@ -180,10 +180,43 @@ class Scan:
         """Reduce
         
         Reduce scan by merging vertices and planes.
+
+        Iterate through the planes:
+            For each plane P:
+                Project other plane Q to P's basis
+                Check if Q is fully contained within P
+                    If so, get rid of Q 
         
         """
         # Iterate through the planes, and for each new plane, check if 
         # any of it's vertices are close to any existing vertices
+
+        # check = set(range(len(self.planes)))
+        # keep = set()
+
+        # while check:
+        #     i = check.pop()
+
+        keep = set(range(len(self.planes)))
+
+        for i, p in enumerate(self.planes):
+            if i in keep:
+                p_proj = (np.linalg.inv(p.basis) @ p.vertices.T).T
+                p_rect = Rectangle(p_proj[:,0:2])
+                to_remove = set()
+                for j in keep:
+                    q = self.planes[j]
+                    q_proj = (np.linalg.inv(p.basis) @ q.vertices.T).T
+                    q_rect = Rectangle(q_proj[:,0:2])
+                    if p_rect.contains(q_rect):
+                        to_remove.add(j)
+
+            keep.difference_update(to_remove)
+        
+        keep = list(keep)
+        self.planes = [self.planes[i] for i in keep]
+
+            
         
 
 

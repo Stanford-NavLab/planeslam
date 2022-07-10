@@ -123,6 +123,23 @@ class Rectangle:
 
         # If there is a separating axis, then rectangles are not intersecting
         return not (check_self | check_other) 
+    
+
+    def contains(self, rect):
+        """Check if a rectangle is contained in this rectangle
+
+        Parameters
+        ----------
+        rect : Rectangle
+            Point
+
+        Returns
+        -------
+        bool : True if rectangle is contained, false otherwise
+        
+        """
+        A, b = self.halfplanes()
+        return np.all(A @ rect.vertices.T >= b)
 
 
     def plot(self, ax=None, color='b'):
