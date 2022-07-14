@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import sys
+import time
 
 from planeslam.geometry.util import quat_to_rot_mat
 from planeslam.general import plot_3D_setup, color_legend, NED_to_ENU
@@ -13,6 +14,8 @@ import planeslam.io as io
 from planeslam.scan import pc_extraction
 from planeslam.registration import get_correspondences
 from planeslam.clustering import mesh_cluster_pts
+
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 
 if __name__ == "__main__":
@@ -69,8 +72,9 @@ if __name__ == "__main__":
     ax8.set_ylabel("Y")
 
     #merged = scans[0]
-
+    start_time = time.time()
     meshes[0], clusters[0], scans[0] = pc_extraction(PCs[0])
+    print("extraction time: ", time.time() - start_time)
     
     print("Beginning visualization...")
     for i in range(len(scans)-1):
@@ -81,7 +85,9 @@ if __name__ == "__main__":
             sys.exit(0)
 
         print("Extracting...")
+        start_time = time.time()
         meshes[i+1], clusters[i+1], scans[i+1] = pc_extraction(PCs[i+1])
+        print("extraction time: ", time.time() - start_time)
 
         ax1.clear()
         ax2.clear()

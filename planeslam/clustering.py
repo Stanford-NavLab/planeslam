@@ -22,7 +22,7 @@ def cluster_mesh_graph_search(mesh, normal_match_thresh=0.866, min_cluster_size=
     clusters : list of lists
         List of triangle indices grouped into clusters
     cluster_normals : list of np.array
-        Normal vectors for each cluster
+        Average normal vectors for each cluster
 
     """
     # Compute surface normals
@@ -30,7 +30,7 @@ def cluster_mesh_graph_search(mesh, normal_match_thresh=0.866, min_cluster_size=
 
     # Graph search
     clusters = []  # Clusters are idxs of triangles, triangles are idxs of points
-    cluster_normals = []
+    #cluster_normals = []
     to_cluster = set(range(len(mesh.DT.simplices)))
 
     while to_cluster:
@@ -59,9 +59,13 @@ def cluster_mesh_graph_search(mesh, normal_match_thresh=0.866, min_cluster_size=
 
         if len(cluster) >= min_cluster_size:
             clusters.append(cluster)
-            cluster_normals.append(cluster_normal)
+            #cluster_normals.append(cluster_normal)
 
-    return clusters, cluster_normals
+    avg_normals = len(clusters) * [None]
+    for i, c in enumerate(clusters):
+        avg_normals[i] = np.mean(normals[c], axis=0)
+
+    return clusters, avg_normals
 
 
 def find_cluster_boundary(cluster, mesh):

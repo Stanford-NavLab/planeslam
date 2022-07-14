@@ -259,12 +259,14 @@ def pc_extraction(P):
 
     Returns
     -------
-    ScanRep
+    mesh : LidarMesh
+    clusters : 
+    Scan 
         Scan representing input point cloud
     
     """
     # Downsample
-    #P = downsample(P, factor=5, axis=0)
+    P = downsample(P, factor=2, axis=0)
 
     # Create the mesh
     mesh = LidarMesh(P)
