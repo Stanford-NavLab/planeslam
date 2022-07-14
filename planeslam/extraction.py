@@ -3,6 +3,7 @@
 """
 
 import numpy as np
+import scipy.spatial
 
 from planeslam.general import downsample
 from planeslam.mesh import LidarMesh
@@ -11,6 +12,44 @@ from planeslam.geometry.plane import BoundedPlane, merge_plane
 from planeslam.geometry.box import Box
 from planeslam.clustering import sort_mesh_clusters, mesh_cluster_pts, cluster_mesh_graph_search
 
+
+def oriented_bd_plane_from_pts(pts,n):
+    """
+    """
+    plane_pts = np.empty((4,3))
+
+    # Project to nearest cardinal plane to find bounding box points
+    plane_idx = np.argsort(np.linalg.norm(np.eye(3) - np.abs(n), axis=0))[0]
+    plane = np.eye(3)[:,plane_idx][:,None]
+    pts_proj = project_points_to_plane(pts, plane)
+
+    # -- Find oriented bounding box of points within the plane --
+
+    # Find principal components of the points
+    c = pts_proj.mean(axis=0)
+    cov = np.sum([np.outer(pts_proj[i,:]-c,pts_proj[i,:]-c) for i in range(pts_proj.shape[0])],axis=0)
+    (_,_,V) = np.linalg.svd(cov)
+    v1 = V[0,:]
+    v2 = V[1,:]
+
+    # Get corners of the bounding box
+    v1_dists = (pts_proj-c) @ v1
+    v2_dists = (pts_proj-c) @ v2
+
+    c1 = c + v1_dists.min() * v1 + v2_dists.min() * v2
+    c2 = c + v1_dists.max() * v1 + v2_dists.min() * v2
+    c3 = c + v1_dists.max() * v1 + v2_dists.max() * v2
+    c4 = c + v1_dists.min() * v1 + v2_dists.max() * v2
+
+    v1 = c2-c1
+    v2 = c3-c2
+
+    if np.cross(v1,v2) @ n > 0:
+        plane_pts = np.vstack([c1,c2,c3,c4])
+    else:
+        plane_pts = np.vstack([c2,c1,c4,c3])
+
+    return project_points_to_plane(plane_pts, n)
 
 def bd_plane_from_pts(pts, n):
     """Extract bounding rectangular plane from set of 3D points
@@ -107,7 +146,7 @@ def scan_from_clusters(mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
         cluster_pts = mesh_cluster_pts(mesh, c)  # Extract points from cluster
 
         # Extract bounding plane
-        plane_pts = bd_plane_from_pts(cluster_pts, n)
+        plane_pts = oriented_bd_plane_from_pts(cluster_pts, n)
         new_face = -np.ones(4, dtype=int)  # New face indices
         merge_mask = np.zeros(4, dtype=bool)  # Which of the new plane points to merge with existing points
         
