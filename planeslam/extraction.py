@@ -175,14 +175,14 @@ def scan_from_clusters(mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
                 merge_mask[best_match] = True
 
         # If shared, adjust plane accordingly
-        if sum(merge_mask) > 0:
-            if sum(merge_mask) == 2:
-                anchor_idxs = new_face[new_face!=-1]
-                anchor_verts = np.asarray(vertices)[anchor_idxs]
-                new_plane = merge_plane(merge_mask, anchor_verts, plane_pts, n)
+        # TODO: handle other cases (sum(merge_mask) == 1,3,4)
+        if sum(merge_mask) == 2:
+            anchor_idxs = new_face[new_face!=-1]
+            anchor_verts = np.asarray(vertices)[anchor_idxs]
+            new_plane = merge_plane(merge_mask, anchor_verts, plane_pts, n)
 
-                vertices += list(new_plane[~merge_mask,:])
-                planes.append(BoundedPlane(new_plane))
+            vertices += list(new_plane[~merge_mask,:])
+            planes.append(BoundedPlane(new_plane))
 
         # Otherwise, add all new vertices
         else:
