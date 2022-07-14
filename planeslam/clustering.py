@@ -5,7 +5,7 @@
 import numpy as np
 
 
-def cluster_mesh_graph_search(mesh, normal_match_thresh=0.3, min_cluster_size=20):
+def cluster_mesh_graph_search(mesh, normal_match_thresh=0.866, min_cluster_size=20):
     """Cluster mesh with graph search
     
     Parameters
@@ -21,8 +21,8 @@ def cluster_mesh_graph_search(mesh, normal_match_thresh=0.3, min_cluster_size=20
     -------
     clusters : list of lists
         List of triangle indices grouped into clusters
-    avg_normals : list of np.array
-        Average normal vectors for each cluster
+    cluster_normals : list of np.array
+        Normal vectors for each cluster
 
     """
     # Compute surface normals
@@ -30,12 +30,12 @@ def cluster_mesh_graph_search(mesh, normal_match_thresh=0.3, min_cluster_size=20
 
     # Graph search
     clusters = []  # Clusters are idxs of triangles, triangles are idxs of points
-    avg_normals = []
+    cluster_normals = []
     to_cluster = set(range(len(mesh.DT.simplices)))
 
     while to_cluster:
         root = to_cluster.pop()
-        avg_normal = normals[root,:]
+        cluster_normal = normals[root,:]
 
         cluster = [root]
         search_queue = set(mesh.tri_nbr_dict[root])
@@ -43,7 +43,8 @@ def cluster_mesh_graph_search(mesh, normal_match_thresh=0.3, min_cluster_size=20
 
         while search_queue:
             i = search_queue.pop()
-            if np.linalg.norm(normals[i,:] - avg_normal) < normal_match_thresh:
+            #if np.linalg.norm(normals[i,:] - avg_normal) < normal_match_thresh:
+            if np.dot(normals[i,:], cluster_normal) > normal_match_thresh:
                 # Add node to cluster and remove from to_cluster
                 cluster.append(i)
                 to_cluster.remove(i)
@@ -53,14 +54,14 @@ def cluster_mesh_graph_search(mesh, normal_match_thresh=0.3, min_cluster_size=20
                 search_nbrs = [x for x in search_nbrs if not x in search_queue]
                 search_queue.update(search_nbrs)
                 # Update average normal
-                avg_normal = np.mean(normals[cluster], axis=0)
-                avg_normal = avg_normal / np.linalg.norm(avg_normal)
+                # avg_normal = np.mean(normals[cluster], axis=0)
+                # avg_normal = avg_normal / np.linalg.norm(avg_normal)
 
         if len(cluster) >= min_cluster_size:
             clusters.append(cluster)
-            avg_normals.append(avg_normal)
+            cluster_normals.append(cluster_normal)
 
-    return clusters, avg_normals
+    return clusters, cluster_normals
 
 
 def find_cluster_boundary(cluster, mesh):

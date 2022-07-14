@@ -14,8 +14,6 @@ from planeslam.scan import pc_extraction
 from planeslam.registration import get_correspondences
 from planeslam.clustering import mesh_cluster_pts
 
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
-
 
 if __name__ == "__main__":
 
