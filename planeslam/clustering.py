@@ -33,6 +33,8 @@ def cluster_mesh_graph_search(mesh, normal_match_thresh=0.866, min_cluster_size=
     #cluster_normals = []
     to_cluster = set(range(len(mesh.DT.simplices)))
 
+    trigger = True
+
     while to_cluster:
         root = to_cluster.pop()
         cluster_normal = normals[root,:]
@@ -41,10 +43,20 @@ def cluster_mesh_graph_search(mesh, normal_match_thresh=0.866, min_cluster_size=
         search_queue = set(mesh.tri_nbr_dict[root])
         search_queue = set([x for x in search_queue if x in to_cluster])  # Don't search nodes that have already been clustered
 
+        # FOR DEBUGGING
+        if len(clusters)==6:
+            print("1 root ", np.mean(mesh.P[mesh.DT.simplices[root]], axis=0))
+
         while search_queue:
             i = search_queue.pop()
+
             #if np.linalg.norm(normals[i,:] - avg_normal) < normal_match_thresh:
             if np.dot(normals[i,:], cluster_normal) > normal_match_thresh:
+
+                if len(clusters)==6:
+                    print(" node ", i, ": ", np.mean(mesh.P[mesh.DT.simplices[i]], axis=0))
+                    print("  nbrs ", mesh.tri_nbr_dict[i])
+
                 # Add node to cluster and remove from to_cluster
                 cluster.append(i)
                 to_cluster.remove(i)
@@ -58,7 +70,10 @@ def cluster_mesh_graph_search(mesh, normal_match_thresh=0.866, min_cluster_size=
                 # avg_normal = avg_normal / np.linalg.norm(avg_normal)
 
         if len(cluster) >= min_cluster_size:
+            
             clusters.append(cluster)
+            if len(clusters)==7:
+                print("2 root ", np.mean(mesh.P[mesh.DT.simplices[root]], axis=0))
             #cluster_normals.append(cluster_normal)
 
     avg_normals = len(clusters) * [None]
