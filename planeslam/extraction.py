@@ -14,7 +14,23 @@ from planeslam.clustering import sort_mesh_clusters, mesh_cluster_pts, cluster_m
 
 
 def oriented_bd_plane_from_pts(pts,n):
-    """
+    """Extract bounding rectangular plane with arbitrary orientation from set of 3D points
+
+    Given a set of cluster boundary points, project the points to the cluster normal 
+    plane, then find the oriented planar bounding box of the points.
+
+    Parameters
+    ----------
+    pts : np.array (n_pts x 3)
+        Cluster points
+    n : np.array (3 x 1)
+        Cluster normal vector
+
+    Returns
+    -------
+    plane_pts : np.array (4 x 3)
+        Planar oriented bounding box points
+        
     """
     plane_pts = np.empty((4,3))
 
