@@ -30,7 +30,8 @@ def remap(arr, k, v):
 
     https://stackoverflow.com/questions/55949809/efficiently-replace-elements-in-array-based-on-dictionary-numpy-python
 
-    Elements of arr which do not appear in k will be unchanged.
+    Elements of arr which do not appear in k will be unchanged. Works for 
+    k and v non-negative integers.
 
     Parameters
     ----------
@@ -51,6 +52,8 @@ def remap(arr, k, v):
     mapping_ar = np.arange(arr.max()+1)
     mapping_ar[k] = v
     return mapping_ar[arr]
+    # map = dict(zip(k,v))
+    # return np.vectorize(map.get)(arr)
 
 
 def downsample(arr, factor, axis):

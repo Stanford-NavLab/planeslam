@@ -77,16 +77,22 @@ class LidarMesh:
         self.DT.equations = self.DT.equations[keep_idx_mask]
         
         # Remap indices for neighbors
-        full_idxs = np.arange(len(keep_idx_mask))
+        # Add 1 to all idxs to shift -1 to 0 (because remap operates on nonnegative values)
+        self.DT.neighbors += 1
+        full_idxs = np.arange(1,len(keep_idx_mask)+1)
         keep_idxs = full_idxs[keep_idx_mask]
         discard_idxs = full_idxs[~keep_idx_mask]
+        
         if len(keep_idxs) < len(keep_idx_mask):
-            # Remap discard idxs to -1
-            self.DT.neighbors = general.remap(self.DT.neighbors, discard_idxs, -np.ones(len(discard_idxs)))
-            # Remap keep idxs to start at 0
-            self.DT.neighbors = general.remap(self.DT.neighbors, keep_idxs, np.arange(len(keep_idxs)))
+            # Remap discard idxs to 0
+            self.DT.neighbors = general.remap(self.DT.neighbors, discard_idxs, np.zeros(len(discard_idxs)))
+            # Remap keep idxs to start at 1
+            self.DT.neighbors = general.remap(self.DT.neighbors, keep_idxs, np.arange(1,len(keep_idxs)+1))
         # Remove entries for deleted triangles
         self.DT.neighbors = self.DT.neighbors[keep_idx_mask]
+
+        # Shift 0 back to -1
+        self.DT.neighbors -= 1
 
         # Update tri_nbr_dict
         self.tri_nbr_dict = self.create_tri_nbr_dict()
@@ -120,7 +126,7 @@ class LidarMesh:
             
         """
         tri_nbr_list = self.DT.neighbors.tolist()
-        tri_nbr_list = [[ele for ele in sub if ele != None] for sub in tri_nbr_list]
+        tri_nbr_list = [[ele for ele in sub if ele != -1] for sub in tri_nbr_list]
         return dict(enumerate(tri_nbr_list))
 
 

@@ -162,7 +162,8 @@ def scan_from_clusters(mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
         cluster_pts = mesh_cluster_pts(mesh, c)  # Extract points from cluster
 
         # Extract bounding plane
-        plane_pts = oriented_bd_plane_from_pts(cluster_pts, n)
+        #plane_pts = oriented_bd_plane_from_pts(cluster_pts, n)
+        plane_pts = bd_plane_from_pts(cluster_pts, n)
         new_face = -np.ones(4, dtype=int)  # New face indices
         merge_mask = np.zeros(4, dtype=bool)  # Which of the new plane points to merge with existing points
         
