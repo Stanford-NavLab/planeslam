@@ -7,6 +7,8 @@ import numpy as np
 
 def cluster_mesh_graph_search(mesh, normal_match_thresh=0.866, min_cluster_size=20):
     """Cluster mesh with graph search
+
+    (Currently assumes mesh has been pruned so tri_nbr_dict has been created)
     
     Parameters
     ----------
