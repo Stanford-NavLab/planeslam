@@ -181,12 +181,18 @@ class Scan:
         
         Reduce scan by merging vertices and planes.
 
-        Iterate through the planes:
-            For each plane P:
-                Project other plane Q to P's basis
-                Check if Q is fully contained within P
-                    If so, get rid of Q 
+        Merge planes inside of each other:
+            Iterate through the planes:
+                For each plane P:
+                    Project other plane Q to P's basis
+                    Check if Q is fully contained within P
+                        If so, get rid of Q 
         
+        Merge planes next to each other:
+            Check if there is a pair of vertices close to another pair of vertices
+            for another plane with similar normal
+
+
         """
         # Iterate through the planes, and for each new plane, check if 
         # any of it's vertices are close to any existing vertices
@@ -235,7 +241,7 @@ def pc_to_scan(P):
     
     """
     # Downsample
-    P = downsample(P, factor=5, axis=0)
+    P = downsample(P, factor=2, axis=0)
 
     # Create the mesh
     mesh = LidarMesh(P)

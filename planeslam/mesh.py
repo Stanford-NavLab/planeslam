@@ -51,7 +51,7 @@ class LidarMesh:
 
         # Generate Delaunay triangulation
         self.DT = Delaunay(np.stack((thetas,phis), axis=1))
-        self.tri_nbr_dict = self.create_tri_nbr_dict()
+        #self.tri_nbr_dict = self.create_tri_nbr_dict()
     
 
     def prune(self, edge_len_lim):
