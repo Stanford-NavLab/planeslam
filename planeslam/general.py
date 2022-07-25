@@ -156,3 +156,34 @@ def plot_pc(P):
     fig.update_layout(width=1000, height=600, scene=dict(
                     aspectmode='data'))
     return fig
+
+def plot_normals(P,normals,scale=10.):
+    """Plot point cloud using plotly
+
+    Returns
+    -------
+    fig : plotly go.Figure
+        Figure handle
+
+    """
+    n = P.shape[0]
+    points = go.Scatter3d(x=P[:,0], y=P[:,1], z=P[:,2], 
+        mode='markers', marker=dict(size=2))
+    data = [points]
+    xs = [None for i in range(3*n)]
+    ys = [None for i in range(3*n)]
+    zs = [None for i in range(3*n)]
+    for i in range(n):
+        xs[3*i] = P[i,0]
+        xs[3*i+1] = P[i,0]+scale*normals[i,0]
+        ys[3*i] = P[i,1]
+        ys[3*i+1] = P[i,1]+scale*normals[i,1]
+        zs[3*i] = P[i,2]
+        zs[3*i+1] = P[i,2]+scale*normals[i,2]
+
+    data.append(go.Scatter3d(x=xs,y=ys,z=zs,mode="lines"))
+
+    fig = go.Figure(data=data)
+    fig.update_layout(width=1000, height=600, scene=dict(
+                    aspectmode='data'),showlegend=False)
+    return fig
