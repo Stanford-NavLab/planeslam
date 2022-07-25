@@ -4,6 +4,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import plotly.express as px
 
 
 def NED_to_ENU(P):
@@ -124,7 +126,7 @@ def plot_3D_setup(P=None, figsize=(15,10)):
 
 
 def color_legend(ax, num_colors):
-    """Display legend for matplitlib default colors
+    """Display legend for matplotlib default colors
     
     Parameters
     ----------
@@ -137,3 +139,20 @@ def color_legend(ax, num_colors):
     for i in range(num_colors):
         ax.plot(0, 0, 0, color='C'+str(i), label=str(i))
     ax.legend()
+
+
+def plot_pc(P):
+    """Plot point cloud using plotly
+
+    Returns
+    -------
+    fig : plotly go.Figure
+        Figure handle
+
+    """
+    data = go.Scatter3d(x=P[:,0], y=P[:,1], z=P[:,2], 
+        mode='markers', marker=dict(size=2))
+    fig = go.Figure(data=data)
+    fig.update_layout(width=1000, height=600, scene=dict(
+                    aspectmode='data'))
+    return fig

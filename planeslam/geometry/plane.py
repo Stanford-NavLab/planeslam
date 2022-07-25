@@ -6,6 +6,7 @@ This module defines the BoundedPlane class and relevant utilities.
 
 import numpy as np
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 from planeslam.general import normalize
 from planeslam.geometry.util import vector_projection
@@ -132,6 +133,16 @@ class BoundedPlane:
             y = 10 * self.basis[:,1]
             ax.quiver(c[0], c[1], c[2], x[0], x[1], x[2], color=color)
             ax.quiver(c[0], c[1], c[2], y[0], y[1], y[2], color=color)
+
+    
+    def plot_trace(self):
+        """Generates plotly trace for this plane to be plotted
+        
+        """
+        mesh = go.Mesh3d(x=self.vertices[:,0], y=self.vertices[:,1], z=self.vertices[:,2], opacity=0.5)
+        lines = go.Scatter3d(x=self.vertices[:,0], y=self.vertices[:,1], z=self.vertices[:,2], mode='lines', line=dict(color= 'rgb(70,70,70)', width=1))
+        plane_data = [mesh, lines]
+        return plane_data
 
         
     

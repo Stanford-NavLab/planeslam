@@ -6,6 +6,7 @@ This module defines the Scan class and relevant utilities.
 
 import numpy as np
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 from planeslam.general import downsample
 from planeslam.extraction import scan_from_clusters
@@ -82,28 +83,23 @@ class Scan:
         # self.center += t[:,None]
     
 
-    def plot(self, ax=None, color=None, show_normals=False):
-        """Plot
+    def plot(self):
+        """Plot scan using plotly
 
-        Parameters
-        ----------
-        ax : matplotlib axes, optional
-            Axes to plot on, if not provided, will generate new set of axes
-        color : optional
-            Color to plot, default matplotlib default color sequence
-        show_normals : bool, optional
-            Whether to plot normal vectors for each plane
-        
+        Returns
+        -------
+        fig : plotly go.Figure
+            Figure handle
+
         """
-        if ax == None:
-            fig, ax = plt.subplots()
+        data = []
+        for p in self.planes:
+            data += p.plot_trace()
         
-        if color is None:
-            for i, p in enumerate(self.planes):
-                p.plot(ax, 'C'+str(i), show_normals)
-        else:
-            for p in self.planes:
-                p.plot(ax, color, show_normals)
+        fig = go.Figure(data=data)
+        fig.update_layout(width=1000, height=600, scene=dict(
+                            aspectmode='data'))
+        return fig
             
     
     def merge(self, scan, norm_thresh=0.1, dist_thresh=5.0):

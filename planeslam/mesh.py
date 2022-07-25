@@ -6,6 +6,7 @@ This module defines the LidarMesh class and relevant utilities.
 
 import numpy as np
 from scipy.spatial import Delaunay
+import plotly.graph_objects as go
 
 import planeslam.general as general
 
@@ -147,3 +148,31 @@ class LidarMesh:
         return normals
 
 
+    def plot(self):
+        """Visualize the mesh using plotly
+
+        Returns
+        -------
+        fig : Plotly go.Figure
+            Figure handle
+
+        """
+        mesh_data = go.Mesh3d(x=self.P[:,0], y=self.P[:,1], z=self.P[:,2], 
+            i=self.DT.simplices[:,0], j=self.DT.simplices[:,1], k=self.DT.simplices[:,2], flatshading=True)
+
+        # Extract the lists of x, y, z coordinates of the triangle vertices and connect them by a line
+        Xe = []; Ye = []; Ze = []
+        for T in self.P[self.DT.simplices]:
+            Xe.extend([T[k%3][0] for k in range(4)]+[ None])
+            Ye.extend([T[k%3][1] for k in range(4)]+[ None])
+            Ze.extend([T[k%3][2] for k in range(4)]+[ None])
+            
+        # Show mesh triangle sides
+        lines = go.Scatter3d(x=Xe, y=Ye, z=Ze, mode='lines', name='',
+                        line=dict(color= 'rgb(70,70,70)', width=1))  
+
+        fig = go.Figure(data=[mesh_data, lines])
+        fig.update_layout(width=1000, height=600, scene=dict(
+                    aspectmode='data'))
+
+        return fig

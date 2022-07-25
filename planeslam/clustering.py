@@ -3,6 +3,7 @@
 """
 
 import numpy as np
+import plotly.express as px
 
 
 def cluster_mesh_graph_search(mesh, normal_match_thresh=0.866, min_cluster_size=20):
@@ -151,3 +152,19 @@ def mesh_cluster_pts(mesh, cluster):
     """
     cluster_pts_idxs = np.unique(mesh.DT.simplices[cluster,:]) 
     return mesh.P[cluster_pts_idxs,:]
+
+
+def plot_clusters(P, mesh, clusters):
+    """Plot clustered points using different colors
+    
+    """
+    cluster_idxs = np.zeros(len(P))
+    for i, c in enumerate(clusters):
+        idxs = np.unique(mesh.DT.simplices[c,:]) 
+        cluster_idxs[idxs] = i
+    
+    fig = px.scatter_3d(P, x=0, y=1, z=2, color=cluster_idxs.astype(str))
+    fig.update_layout(width=1000, height=600, scene=dict(
+                    aspectmode='data'))
+    fig.update_traces(marker_size=2)
+    return fig
