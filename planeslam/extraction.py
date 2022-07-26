@@ -384,3 +384,19 @@ def pc_to_planes(P):
 
     # Extract planes
     return planes_from_clusters(mesh, clusters, avg_normals)
+
+def orient_normals(P,normals):
+    """Orient normals to be consistently pointing towards the origin
+
+    Parameters
+    ---------
+
+    Returns
+    -------
+    normals: np.array
+    """
+    dot = np.sum(P*normals,axis=1)
+    idxs = np.where(dot > 0)
+    normals[idxs] *= -1
+    return normals
+
