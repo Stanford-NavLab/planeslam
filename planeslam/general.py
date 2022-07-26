@@ -22,7 +22,7 @@ def NED_to_ENU(P):
         points in ENU
 
     """
-    P = P[:,[1,0,2]]  # Swap x and y
+    P[:,[0,1]] = P[:,[1,0]]  # Swap x and y
     P[:,2] = -P[:,2]  # Negate z
     return P
 
