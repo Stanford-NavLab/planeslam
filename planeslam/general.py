@@ -141,18 +141,14 @@ def color_legend(ax, num_colors):
     ax.legend()
 
 
-def plot_pc(P):
-    """Plot point cloud using plotly
+def pc_plot_trace(P):
+    """Generate plotly plot trace for point cloud
 
     Returns
     -------
-    fig : plotly go.Figure
-        Figure handle
+    fig : plotly go.Scatter3d
+        Scatter plot trace
 
     """
-    data = go.Scatter3d(x=P[:,0], y=P[:,1], z=P[:,2], 
+    return go.Scatter3d(x=P[:,0], y=P[:,1], z=P[:,2], 
         mode='markers', marker=dict(size=2))
-    fig = go.Figure(data=data)
-    fig.update_layout(width=1000, height=600, scene=dict(
-                    aspectmode='data'))
-    return fig

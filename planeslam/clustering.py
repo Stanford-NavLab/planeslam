@@ -156,6 +156,9 @@ def mesh_cluster_pts(mesh, cluster):
 
 def plot_clusters(P, mesh, clusters):
     """Plot clustered points using different colors
+
+    TODO: change to trace generation (if possible) to work with subplots
+    list(px.scatter_3d(P, x=0, y=1, z=2, color=cluster_idxs.astype(str)).select_traces())
     
     """
     cluster_idxs = np.zeros(len(P))

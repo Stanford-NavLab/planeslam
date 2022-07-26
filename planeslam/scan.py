@@ -83,23 +83,22 @@ class Scan:
         # self.center += t[:,None]
     
 
-    def plot(self):
-        """Plot scan using plotly
+    def plot_trace(self):
+        """Generate plotly plot trace
+
+        TODO: sometimes plane mesh is not plotted properly, may be due to ordering of vertices
 
         Returns
         -------
-        fig : plotly go.Figure
-            Figure handle
+        data : list
+            List of graph objects to plot for scan
 
         """
         data = []
-        for p in self.planes:
-            data += p.plot_trace()
+        for i, p in enumerate(self.planes):
+            data += p.plot_trace(name=str(i))
         
-        fig = go.Figure(data=data)
-        fig.update_layout(width=1000, height=600, scene=dict(
-                            aspectmode='data'))
-        return fig
+        return data
             
     
     def merge(self, scan, norm_thresh=0.1, dist_thresh=5.0):

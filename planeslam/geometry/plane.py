@@ -135,12 +135,15 @@ class BoundedPlane:
             ax.quiver(c[0], c[1], c[2], y[0], y[1], y[2], color=color)
 
     
-    def plot_trace(self):
+    def plot_trace(self, name=None):
         """Generates plotly trace for this plane to be plotted
         
         """
-        mesh = go.Mesh3d(x=self.vertices[:,0], y=self.vertices[:,1], z=self.vertices[:,2], opacity=0.5)
-        lines = go.Scatter3d(x=self.vertices[:,0], y=self.vertices[:,1], z=self.vertices[:,2], mode='lines', line=dict(color= 'rgb(70,70,70)', width=1))
+        V = self.vertices
+        mesh = go.Mesh3d(x=V[:,0], y=V[:,1], z=V[:,2], 
+            opacity=0.5, showlegend=True, name=name)
+        lines = go.Scatter3d(x=np.hstack((V[:,0],V[0,0])), y=np.hstack((V[:,1],V[0,1])), z=np.hstack((V[:,2],V[0,2])), 
+            mode='lines', line=dict(color= 'rgb(70,70,70)', width=1), showlegend=False)
         plane_data = [mesh, lines]
         return plane_data
 

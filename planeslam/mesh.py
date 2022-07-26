@@ -148,13 +148,13 @@ class LidarMesh:
         return normals
 
 
-    def plot(self):
-        """Visualize the mesh using plotly
+    def plot_trace(self):
+        """Generate plotly plot trace for mesh 
 
         Returns
         -------
-        fig : Plotly go.Figure
-            Figure handle
+        data : list
+            go.Mesh3d and go.Scatter3d containing mesh and line data to plot
 
         """
         mesh_data = go.Mesh3d(x=self.P[:,0], y=self.P[:,1], z=self.P[:,2], 
@@ -171,8 +171,5 @@ class LidarMesh:
         lines = go.Scatter3d(x=Xe, y=Ye, z=Ze, mode='lines', name='',
                         line=dict(color= 'rgb(70,70,70)', width=1))  
 
-        fig = go.Figure(data=[mesh_data, lines])
-        fig.update_layout(width=1000, height=600, scene=dict(
-                    aspectmode='data'))
-
-        return fig
+        data = [mesh_data, lines]
+        return data
