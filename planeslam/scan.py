@@ -6,6 +6,7 @@ This module defines the Scan class and relevant utilities.
 
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
 
 from planeslam.general import downsample
 from planeslam.extraction import scan_from_clusters, planes_from_clusters
@@ -82,7 +83,7 @@ class Scan:
         # self.center += t[:,None]
     
 
-    def plot_trace(self):
+    def plot_trace(self,plot_normals=False,normal_scale=5):
         """Generate plotly plot trace
 
         TODO: sometimes plane mesh is not plotted properly, may be due to ordering of vertices
@@ -93,13 +94,28 @@ class Scan:
             List of graph objects to plot for scan
 
         """
+
         data = []
         colors = px.colors.qualitative.Plotly
         for i, p in enumerate(self.planes):
             data += p.plot_trace(name=str(i), color=colors[i%len(colors)])
+
+        # Plot normal vectors
+        if plot_normals:
+            n = len(self.planes)
+            xs = [None for i in range(3*n)]
+            ys = [None for i in range(3*n)]
+            zs = [None for i in range(3*n)]
+            for i, p in enumerate(self.planes):
+                xs[3*i] = p.center[0]
+                xs[3*i+1] = p.center[0] + normal_scale * p.normal.flatten()[0]
+                ys[3*i] = p.center[1]
+                ys[3*i+1] = p.center[1] + normal_scale * p.normal.flatten()[1]
+                zs[3*i] = p.center[2]
+                zs[3*i+1] = p.center[2] + normal_scale * p.normal.flatten()[2]
+            data.append(go.Scatter3d(x=xs,y=ys,z=zs,mode="lines",line=dict(color="red",width=2)))
         
         return data
-            
     
     def merge(self, scan, norm_thresh=0.1, dist_thresh=5.0):
         """Merge 
