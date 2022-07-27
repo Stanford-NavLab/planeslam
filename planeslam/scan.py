@@ -228,7 +228,7 @@ class Scan:
         """
 
 
-    def reduce_corners():
+    def reduce_corners(self):
         """Reduce by merging corners
         
         """

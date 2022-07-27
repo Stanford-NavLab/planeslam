@@ -93,7 +93,7 @@ def bd_plane_from_pts_basis(pts, n, basis):
     pts_proj = pts @ np.linalg.inv(basis).T
 
     # Use normal to determine which dimensions to extract bounding box from
-    plane_idx = np.argsort(np.linalg.norm(basis - np.abs(n), axis=0))[0]
+    plane_idx = np.argsort(np.linalg.norm(np.hstack((basis, -basis)) - n, axis=0))[0] % 3
     axes = {0,1,2}  # x,y,z
     axes.remove(plane_idx)
     axes = list(axes)
@@ -215,22 +215,20 @@ def scan_from_clusters(mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
     # Sort clusters from largest to smallest
     clusters, avg_normals = sort_mesh_clusters(clusters, avg_normals)
 
-    # Orient extracted planes based on largest cluster (ground plane in most cases)
-    ground_basis = None
+    # Find extraction basis based on normals
+    basis = np.zeros((3,3))
+    basis[:,2] = avg_normals[0]  # choose first cluster's normal as z
+    dps = np.asarray(avg_normals) @ basis[:,2]
+    orth_idxs = np.nonzero(np.abs(dps) < 0.2)[0]  # indices of normals approximately orthonormal to z
+    basis[:,0] = avg_normals[orth_idxs[0]]  # choose the first one as x
+    basis[:,1] = np.cross(basis[:,2], basis[:,0])
 
     for i, c in enumerate(clusters):  
         n = avg_normals[i][:,None]
         cluster_pts = mesh_cluster_pts(mesh, c)  # Extract points from cluster
 
-        if i == 0:
-            plane_pts = bd_plane_from_pts(cluster_pts, n)
-            ground_basis = BoundedPlane(plane_pts).basis
-        else:
-            plane_pts = bd_plane_from_pts_basis(cluster_pts, n, ground_basis)
-
         # Extract bounding plane
-        #plane_pts = oriented_bd_plane_from_pts(cluster_pts, n)
-        #plane_pts = bd_plane_from_pts(cluster_pts, n)
+        plane_pts = bd_plane_from_pts_basis(cluster_pts, n, basis)
         new_face = -np.ones(4, dtype=int)  # New face indices
         merge_mask = np.zeros(4, dtype=bool)  # Which of the new plane points to merge with existing points
         
@@ -370,21 +368,27 @@ def planes_from_clusters(mesh, clusters, avg_normals):
     planes : list of BoundedPlanes
         List of planes
 
-    """
+    """ 
     planes = []
 
     # Sort clusters from largest to smallest
     clusters, avg_normals = sort_mesh_clusters(clusters, avg_normals)
 
+    # Find extraction basis based on normals
+    basis = np.zeros((3,3))
+    basis[:,2] = avg_normals[0]  # choose first cluster's normal as z
+    dps = np.asarray(avg_normals) @ basis[:,2]
+    orth_idxs = np.nonzero(np.abs(dps) < 0.2)[0]  # indices of normals approximately orthonormal to z
+    basis[:,0] = avg_normals[orth_idxs[0]]  # choose the first one as x
+    basis[:,1] = np.cross(basis[:,2], basis[:,0])
+
     for i, c in enumerate(clusters):  
         n = avg_normals[i][:,None]
         cluster_pts = mesh_cluster_pts(mesh, c)  # Extract points from cluster
-        
-        # Extract bounding plane
-        plane_pts = bd_plane_from_pts(cluster_pts, n)
 
-        bplane = BoundedPlane(plane_pts)
-        planes.append(bplane)
+        # Extract bounding plane
+        plane_pts = bd_plane_from_pts_basis(cluster_pts, n, basis)
+        planes.append(BoundedPlane(plane_pts))
     
     return planes
 
