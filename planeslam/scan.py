@@ -5,8 +5,7 @@ This module defines the Scan class and relevant utilities.
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-import plotly.graph_objects as go
+import plotly.express as px
 
 from planeslam.general import downsample
 from planeslam.extraction import scan_from_clusters
@@ -95,8 +94,9 @@ class Scan:
 
         """
         data = []
+        colors = px.colors.qualitative.Plotly
         for i, p in enumerate(self.planes):
-            data += p.plot_trace(name=str(i))
+            data += p.plot_trace(name=str(i), color=colors[i%len(colors)])
         
         return data
             
@@ -171,8 +171,8 @@ class Scan:
         return Scan(merged_planes)
 
 
-    def reduce(self):
-        """Reduce
+    def reduce_inside(self):
+        """Reduce by checking for planes inside of each other
         
         Reduce scan by merging vertices and planes.
 
@@ -206,18 +206,33 @@ class Scan:
                 p_rect = Rectangle(p_proj[:,0:2])
                 to_remove = set()
                 for j in keep:
+                    if j == i:
+                        continue
                     q = self.planes[j]
-                    q_proj = (np.linalg.inv(p.basis) @ q.vertices.T).T
-                    q_rect = Rectangle(q_proj[:,0:2])
-                    if p_rect.contains(q_rect):
-                        to_remove.add(j)
+                    if np.dot(p.normal.T, q.normal) > 0.866:
+                        q_proj = (np.linalg.inv(p.basis) @ q.vertices.T).T
+                        q_rect = Rectangle(q_proj[:,0:2])
+                        if p_rect.contains(q_rect):
+                            print(f'{i} contains {j}')
+                            to_remove.add(j)
 
             keep.difference_update(to_remove)
         
         keep = list(keep)
         self.planes = [self.planes[i] for i in keep]
 
-            
+    
+    def reduce_intersections():
+        """Reduce by checking intersections
+        
+        """
+
+
+    def reduce_corners():
+        """Reduce by merging corners
+        
+        """
+        
         
 
 

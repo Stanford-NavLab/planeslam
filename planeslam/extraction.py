@@ -13,7 +13,7 @@ from planeslam.geometry.box import Box
 from planeslam.clustering import sort_mesh_clusters, mesh_cluster_pts, cluster_mesh_graph_search
 
 
-def oriented_bd_plane_from_pts(pts,n):
+def oriented_bd_plane_from_pts(pts, n):
     """Extract bounding rectangular plane with arbitrary orientation from set of 3D points
 
     Given a set of cluster boundary points, project the points to the cluster normal 
@@ -67,7 +67,8 @@ def oriented_bd_plane_from_pts(pts,n):
 
     return project_points_to_plane(plane_pts, n)
 
-def bd_plane_from_pts(pts, n):
+
+def bd_plane_from_pts_basis(pts, n, basis):
     """Extract bounding rectangular plane from set of 3D points
 
     Given a set of cluster boundary points, project the points to the cluster normal 
@@ -87,6 +88,63 @@ def bd_plane_from_pts(pts, n):
         
     """
     plane_pts = np.empty((4,3))
+
+    # Project to basis
+    pts_proj = pts @ np.linalg.inv(basis).T
+
+    # Use normal to determine which dimensions to extract bounding box from
+    plane_idx = np.argsort(np.linalg.norm(basis - np.abs(n), axis=0))[0]
+    axes = {0,1,2}  # x,y,z
+    axes.remove(plane_idx)
+    axes = list(axes)
+
+    # Find 2D bounding box of points within plane
+    # Orders points counterclockwise with respect to the normal (i.e. right hand rule)
+    plane_pts[:,plane_idx] = pts_proj[0,plane_idx]
+    min = np.amin(pts_proj[:,axes], axis=0)
+    max = np.amax(pts_proj[:,axes], axis=0)
+
+    for i, ax in enumerate(axes):
+        if i == 0:  # First coordinate
+            if n[plane_idx] > 0:  # Positively oriented normal
+                if plane_idx == 0 or plane_idx == 2:  # x or z normal
+                    plane_pts[:,ax] = np.array([min[i], max[i], max[i], min[i]])  # Case 1
+                else: # y normal
+                    plane_pts[:,ax] = np.array([max[i], min[i], min[i], max[i]])  # Case 2
+            else:  # Negatively oriented normal
+                if plane_idx == 0 or plane_idx == 2:  # x or z normal
+                    plane_pts[:,ax] = np.array([max[i], min[i], min[i], max[i]])  # Case 2
+                else: # y normal
+                    plane_pts[:,ax] = np.array([min[i], max[i], max[i], min[i]])  # Case 1
+        else:  # Second coordinate
+            plane_pts[:,ax] = np.array([min[i], min[i], max[i], max[i]])  # Case 3
+
+    # Project back to standard basis
+    plane_pts = plane_pts @ basis.T
+
+    return plane_pts
+
+
+def bd_plane_from_pts(pts, n):
+    """Extract bounding rectangular plane from set of 3D points
+
+    Given a set of cluster boundary points, project the points to the cluster normal 
+    plane, then find the planar bounding box of the points.
+
+    Parameters
+    ----------
+    pts : np.array (n_pts x 3)
+        Cluster points
+    n : np.array (3 x 1)
+        Cluster normal vector
+
+    Returns
+    -------
+    plane_pts : np.array (4 x 3)
+        Planar bounding box points
+        
+    """
+    plane_pts = np.empty((4,3)) 
 
     # Project to nearest cardinal plane to find bounding box points
     plane_idx = np.argsort(np.linalg.norm(np.eye(3) - np.abs(n), axis=0))[0]
@@ -157,13 +215,22 @@ def scan_from_clusters(mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
     # Sort clusters from largest to smallest
     clusters, avg_normals = sort_mesh_clusters(clusters, avg_normals)
 
+    # Orient extracted planes based on largest cluster (ground plane in most cases)
+    ground_basis = None
+
     for i, c in enumerate(clusters):  
         n = avg_normals[i][:,None]
         cluster_pts = mesh_cluster_pts(mesh, c)  # Extract points from cluster
 
+        if i == 0:
+            plane_pts = bd_plane_from_pts(cluster_pts, n)
+            ground_basis = BoundedPlane(plane_pts).basis
+        else:
+            plane_pts = bd_plane_from_pts_basis(cluster_pts, n, ground_basis)
+
         # Extract bounding plane
         #plane_pts = oriented_bd_plane_from_pts(cluster_pts, n)
-        plane_pts = bd_plane_from_pts(cluster_pts, n)
+        #plane_pts = bd_plane_from_pts(cluster_pts, n)
         new_face = -np.ones(4, dtype=int)  # New face indices
         merge_mask = np.zeros(4, dtype=bool)  # Which of the new plane points to merge with existing points
         
