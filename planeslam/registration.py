@@ -17,49 +17,79 @@ from planeslam.geometry.util import skew
 from planeslam.geometry.rectangle import Rectangle
 
 
-def get_correspondences(source, target, norm_thresh=0.3, dist_thresh=5.0):
-    """Get correspondences between two scans
+# def get_correspondences(source, target, norm_thresh=0.3, dist_thresh=5.0):
+#     """Get correspondences between two scans
 
-    Parameters
-    ----------
-    source : Scan
-        Source scan
-    target : Scan
-        target scan
-    norm_thresh : float 
-        Correspodence threshold for comparing normal vectors
-    dist_thesh : float
-        Correspondence threshold for plane to plane distance
+#     Parameters
+#     ----------
+#     source : Scan
+#         Source scan
+#     target : Scan
+#         target scan
+#     norm_thresh : float 
+#         Correspodence threshold for comparing normal vectors
+#     dist_thesh : float
+#         Correspondence threshold for plane to plane distance
 
-    Returns
-    -------
-    correspondences : list of tuples
-        List of correspondence tuples
+#     Returns
+#     -------
+#     correspondences : list of tuples
+#         List of correspondence tuples
         
+#     """
+#     P = source.planes
+#     Q = target.planes
+#     correspondences = []
+
+#     for i, p in enumerate(P):
+#         # Compute projection of p onto it's own basis
+#         p_proj = (np.linalg.inv(p.basis) @ p.vertices.T).T
+#         p_rect = Rectangle(p_proj[:,0:2])
+
+#         for j, q in enumerate(Q):
+#             # Check if 2 planes are approximately coplanar
+#             if np.linalg.norm(p.normal - q.normal) < norm_thresh:
+#                 # Check plane to plane distance    
+#                 if plane_to_plane_dist(p, q) < dist_thresh:
+#                     # Project q onto p's basis
+#                     q_proj = (np.linalg.inv(p.basis) @ q.vertices.T).T
+#                     # Check overlap
+#                     q_rect = Rectangle(q_proj[:,0:2])
+#                     if p_rect.is_intersecting(q_rect):    
+#                         # Add the correspondence
+#                         correspondences.append((i,j))
+        
+#     return correspondences
+
+
+def get_correspondences(source, target):
     """
-    P = source.planes
-    Q = target.planes
-    correspondences = []
-
-    for i, p in enumerate(P):
-        # Compute projection of p onto it's own basis
-        p_proj = (np.linalg.inv(p.basis) @ p.vertices.T).T
-        p_rect = Rectangle(p_proj[:,0:2])
-
-        for j, q in enumerate(Q):
-            # Check if 2 planes are approximately coplanar
-            if np.linalg.norm(p.normal - q.normal) < norm_thresh:
-                # Check plane to plane distance    
-                if plane_to_plane_dist(p, q) < dist_thresh:
-                    # Project q onto p's basis
-                    q_proj = (np.linalg.inv(p.basis) @ q.vertices.T).T
-                    # Check overlap
-                    q_rect = Rectangle(q_proj[:,0:2])
-                    if p_rect.is_intersecting(q_rect):    
-                        # Add the correspondence
-                        correspondences.append((i,j))
-        
-    return correspondences
+    """
+    n = len(source.planes) # source P
+    m = len(target.planes) # target Q
+    score_mat = np.zeros((n,m))
+    for i in range(n):
+        for j in range(m):
+            n1 = source.planes[i].normal
+            n2 = target.planes[j].normal
+            c1 = source.planes[i].center
+            c2 = target.planes[j].center
+            score_mat[i,j] = 20 * np.linalg.norm(n1 - n2) + np.linalg.norm(c1 - c2)
+    
+    matches = np.argmin(score_mat, axis=1)
+    print("matches ", matches)
+    corrs = []
+    for i, j in enumerate(matches):
+        n1 = source.planes[i].normal.flatten()
+        n2 = target.planes[j].normal.flatten()
+        c1 = source.planes[i].center
+        c2 = target.planes[j].center
+        print("dist ", np.linalg.norm(c1 - c2))
+        print("angle ", np.dot(n1, n2))
+        if np.dot(n1, n2) > 0.707 and np.linalg.norm(c1 - c2) < 20.0:  # 45 degrees
+            corrs.append((i,j))
+    
+    return corrs
 
 
 def extract_corresponding_features(source, target, correspondences):

@@ -8,7 +8,7 @@ import numpy as np
 import plotly.express as px
 
 from planeslam.general import downsample
-from planeslam.extraction import scan_from_clusters
+from planeslam.extraction import scan_from_clusters, planes_from_clusters
 from planeslam.clustering import cluster_mesh_graph_search
 from planeslam.mesh import LidarMesh
 from planeslam.geometry.plane import BoundedPlane, plane_to_plane_dist
@@ -228,8 +228,8 @@ class Scan:
         """
 
 
-    def reduce_corners(self):
-        """Reduce by merging corners
+    def fuse_edges(self):
+        """Fuse edges
         
         """
         
@@ -261,8 +261,10 @@ def pc_to_scan(P):
     clusters, avg_normals = cluster_mesh_graph_search(mesh)
 
     # Form scan topology
-    planes, vertices, faces = scan_from_clusters(mesh, clusters, avg_normals)
-    return Scan(planes, vertices, faces)
+    # planes, vertices, faces = scan_from_clusters(mesh, clusters, avg_normals)
+    # return Scan(planes, vertices, faces)
+    planes = planes_from_clusters(mesh, clusters, avg_normals)
+    return Scan(planes)
 
 
 def pc_extraction(P):

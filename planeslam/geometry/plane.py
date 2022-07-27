@@ -241,3 +241,26 @@ def merge_plane(mask, anchor_verts, old_verts, normal):
         print(mask, ", is not a valid mask")
     
     return new_verts
+
+
+def order_plane_verts(V, n):
+    """Order plane vertices based on normal
+
+    Orders points counterclockwise with respect to the normal (i.e. right hand rule)
+
+    Parameters
+    ----------
+    V : np.array (4 x 3)
+        Plane vertices
+    n : np.array (3 x 1)
+        Normal vector
+
+    Returns
+    -------
+    V : np.array (4 x 3)
+        Ordered plane vertices
+
+    """
+    # Check if current ordering has normal in right direction
+
+    # If not, swap ordering

@@ -93,20 +93,25 @@ def bd_plane_from_pts_basis(pts, n, basis):
     pts_proj = pts @ np.linalg.inv(basis).T
 
     # Use normal to determine which dimensions to extract bounding box from
-    plane_idx = np.argsort(np.linalg.norm(np.hstack((basis, -basis)) - n, axis=0))[0] % 3
+    plane_idx = np.argsort(np.linalg.norm(np.hstack((basis, -basis)) - n, axis=0))[0] % 3  # account for negative basis directions
+    #plane_idx = np.argsort(np.linalg.norm(basis - n, axis=0))[0] % 3
     axes = {0,1,2}  # x,y,z
     axes.remove(plane_idx)
     axes = list(axes)
 
     # Find 2D bounding box of points within plane
-    # Orders points counterclockwise with respect to the normal (i.e. right hand rule)
-    plane_pts[:,plane_idx] = pts_proj[0,plane_idx]
+    plane_pts[:,plane_idx] = pts_proj[0,plane_idx]  # Coordinate in plane is constant
     min = np.amin(pts_proj[:,axes], axis=0)
     max = np.amax(pts_proj[:,axes], axis=0)
 
+    # plane_pts[:,axes[0]] = np.array([min[0], max[0], max[0], min[0]])
+    # plane_pts[:,axes[1]] = np.array([min[1], min[1], max[1], max[1]])
+
+    n_proj = np.linalg.inv(basis) @ n
+    
     for i, ax in enumerate(axes):
         if i == 0:  # First coordinate
-            if n[plane_idx] > 0:  # Positively oriented normal
+            if n_proj[plane_idx] > 0:  # Positively oriented normal
                 if plane_idx == 0 or plane_idx == 2:  # x or z normal
                     plane_pts[:,ax] = np.array([min[i], max[i], max[i], min[i]])  # Case 1
                 else: # y normal
@@ -222,12 +227,19 @@ def scan_from_clusters(mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
     orth_idxs = np.nonzero(np.abs(dps) < 0.2)[0]  # indices of normals approximately orthonormal to z
     basis[:,0] = avg_normals[orth_idxs[0]]  # choose the first one as x
     basis[:,1] = np.cross(basis[:,2], basis[:,0])
+    #ground_plane = None
 
     for i, c in enumerate(clusters):  
         n = avg_normals[i][:,None]
         cluster_pts = mesh_cluster_pts(mesh, c)  # Extract points from cluster
 
         # Extract bounding plane
+        # if i == 0:
+        #     plane_pts = bd_plane_from_pts(cluster_pts, n)
+        #     ground_basis = BoundedPlane(plane_pts).basis
+        #     print(ground_basis)
+        # else:
+        #     plane_pts = bd_plane_from_pts_basis(cluster_pts, n, ground_basis)
         plane_pts = bd_plane_from_pts_basis(cluster_pts, n, basis)
         new_face = -np.ones(4, dtype=int)  # New face indices
         merge_mask = np.zeros(4, dtype=bool)  # Which of the new plane points to merge with existing points
@@ -456,7 +468,8 @@ def pc_to_planes(P):
     # Extract planes
     return planes_from_clusters(mesh, clusters, avg_normals)
 
-def orient_normals(P,normals):
+
+def orient_normals(P, normals):
     """Orient normals to be consistently pointing towards the origin
 
     Parameters
@@ -465,8 +478,9 @@ def orient_normals(P,normals):
     Returns
     -------
     normals: np.array
+
     """
-    dot = np.sum(P*normals,axis=1)
+    dot = np.sum(P*normals, axis=1)
     idxs = np.where(dot > 0)
     normals[idxs] *= -1
     return normals
