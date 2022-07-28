@@ -103,6 +103,19 @@ class BoundedPlane:
         box_2D = Box(np.amin(V_2D, axis=0), np.amax(V_2D, axis=0))
         z = V[0,2]
         return box_2D, z
+
+
+    def edges(self):
+        """Return edges of planes
+        
+        Returns
+        -------
+        list of tuples
+            List of edges as (v_i,v_j) vertex tuples 
+
+        """
+        V = self.vertices
+        return [(V[i], V[(i+1)%4]) for i in range(4)]
     
 
     def plot(self, ax=None, color='b', show_normal=False):

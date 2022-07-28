@@ -104,9 +104,6 @@ def bd_plane_from_pts_basis(pts, n, basis):
     min = np.amin(pts_proj[:,axes], axis=0)
     max = np.amax(pts_proj[:,axes], axis=0)
 
-    # plane_pts[:,axes[0]] = np.array([min[0], max[0], max[0], min[0]])
-    # plane_pts[:,axes[1]] = np.array([min[1], min[1], max[1], max[1]])
-
     n_proj = np.linalg.inv(basis) @ n
     
     for i, ax in enumerate(axes):
@@ -227,19 +224,11 @@ def scan_from_clusters(mesh, clusters, avg_normals, vertex_merge_thresh=1.0):
     orth_idxs = np.nonzero(np.abs(dps) < 0.2)[0]  # indices of normals approximately orthonormal to z
     basis[:,0] = avg_normals[orth_idxs[0]]  # choose the first one as x
     basis[:,1] = np.cross(basis[:,2], basis[:,0])
-    #ground_plane = None
 
     for i, c in enumerate(clusters):  
         n = avg_normals[i][:,None]
         cluster_pts = mesh_cluster_pts(mesh, c)  # Extract points from cluster
 
-        # Extract bounding plane
-        # if i == 0:
-        #     plane_pts = bd_plane_from_pts(cluster_pts, n)
-        #     ground_basis = BoundedPlane(plane_pts).basis
-        #     print(ground_basis)
-        # else:
-        #     plane_pts = bd_plane_from_pts_basis(cluster_pts, n, ground_basis)
         plane_pts = bd_plane_from_pts_basis(cluster_pts, n, basis)
         new_face = -np.ones(4, dtype=int)  # New face indices
         merge_mask = np.zeros(4, dtype=bool)  # Which of the new plane points to merge with existing points

@@ -77,15 +77,12 @@ def get_correspondences(source, target):
             score_mat[i,j] = 20 * np.linalg.norm(n1 - n2) + np.linalg.norm(c1 - c2)
     
     matches = np.argmin(score_mat, axis=1)
-    print("matches ", matches)
     corrs = []
     for i, j in enumerate(matches):
         n1 = source.planes[i].normal.flatten()
         n2 = target.planes[j].normal.flatten()
         c1 = source.planes[i].center
         c2 = target.planes[j].center
-        print("dist ", np.linalg.norm(c1 - c2))
-        print("angle ", np.dot(n1, n2))
         if np.dot(n1, n2) > 0.707 and np.linalg.norm(c1 - c2) < 20.0:  # 45 degrees
             corrs.append((i,j))
     

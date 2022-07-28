@@ -12,7 +12,7 @@ from planeslam.general import downsample
 from planeslam.extraction import scan_from_clusters, planes_from_clusters
 from planeslam.clustering import cluster_mesh_graph_search
 from planeslam.mesh import LidarMesh
-from planeslam.geometry.plane import BoundedPlane, plane_to_plane_dist
+from planeslam.geometry.plane import BoundedPlane, plane_to_plane_dist, merge_plane
 from planeslam.geometry.box import box_from_pts
 from planeslam.geometry.rectangle import Rectangle
 
@@ -56,7 +56,6 @@ class Scan:
             self.faces = faces
         else:
             # TODO: get vertices and faces from planes
-            print("vertex and face generation not yet implemented")
             pass
 
         if center is not None:
@@ -83,7 +82,7 @@ class Scan:
         # self.center += t[:,None]
     
 
-    def plot_trace(self,plot_normals=False,normal_scale=5):
+    def plot_trace(self, show_normals=False, normal_scale=5):
         """Generate plotly plot trace
 
         TODO: sometimes plane mesh is not plotted properly, may be due to ordering of vertices
@@ -94,14 +93,13 @@ class Scan:
             List of graph objects to plot for scan
 
         """
-
         data = []
         colors = px.colors.qualitative.Plotly
         for i, p in enumerate(self.planes):
             data += p.plot_trace(name=str(i), color=colors[i%len(colors)])
 
         # Plot normal vectors
-        if plot_normals:
+        if show_normals:
             n = len(self.planes)
             xs = [None for i in range(3*n)]
             ys = [None for i in range(3*n)]
@@ -113,7 +111,7 @@ class Scan:
                 ys[3*i+1] = p.center[1] + normal_scale * p.normal.flatten()[1]
                 zs[3*i] = p.center[2]
                 zs[3*i+1] = p.center[2] + normal_scale * p.normal.flatten()[2]
-            data.append(go.Scatter3d(x=xs,y=ys,z=zs,mode="lines",line=dict(color="red",width=2)))
+            data.append(go.Scatter3d(x=xs, y=ys, z=zs, mode="lines", line=dict(color="red",width=2), showlegend=False))
         
         return data
     
@@ -242,14 +240,65 @@ class Scan:
         """Reduce by checking intersections
         
         """
-
-
-    def fuse_edges(self):
+        
+    
+    def fuse_edges(self, vertex_merge_thresh=2.0):
         """Fuse edges
         
         """
+        # # Get list of all edges
+        # E = []
+        # for p in self.planes:
+        #     E += p.edges()
         
-        
+        # # Edge distance metric
+        # def edge_dist(e1, e2):
+        #     return min(np.linalg.norm(e1[0] - e2[0]) + np.linalg.norm(e1[1] - e2[1]),
+        #         np.linalg.norm(e1[1] - e2[0]) + np.linalg.norm(e1[0] - e2[1]))
+
+        # num_edges = len(E)
+        # DM = np.zeros((num_edges,num_edges))  # distance matrix
+        # for i in range(num_edges):
+        #     for j in range(num_edges):
+        #         DM[i,j] = edge_dist(E[i], E[j])
+
+        # NOTE: might want to resort planes by size after each merge
+        # Use vertices of first plane as initial anchors
+        vertices = list(self.planes[0].vertices)
+        update_idxs = []
+        update_planes = []
+
+        # Iterate over remaining planes
+        for i, p in enumerate(self.planes[1:]):
+            plane_pts = p.vertices
+            new_face = -np.ones(4, dtype=int)
+            merge_mask = np.zeros(4, dtype=bool)
+
+            # Check if this plane shares any vertices with previous planes
+            for k in range(len(vertices)):
+                dists = np.linalg.norm(plane_pts - vertices[k], axis=1)
+                best_match = np.argsort(dists)[0]
+                if dists[best_match] < vertex_merge_thresh:
+                    new_face[best_match] = k
+                    merge_mask[best_match] = True
+
+            # If shared, adjust plane accordingly
+            if sum(merge_mask) == 2:
+                print("hi")
+                anchor_idxs = new_face[new_face!=-1]
+                anchor_verts = np.asarray(vertices)[anchor_idxs]
+                new_plane = merge_plane(merge_mask, anchor_verts, plane_pts, p.normal)
+
+                vertices += list(new_plane[~merge_mask,:])
+                update_idxs.append(i+1)
+                update_planes.append(BoundedPlane(new_plane))
+            else:
+                vertices += list(plane_pts)
+
+        # Update planes
+        for i, idx in enumerate(update_idxs):
+            self.planes[idx] = update_planes[i]
+
 
 
 def pc_to_scan(P):
