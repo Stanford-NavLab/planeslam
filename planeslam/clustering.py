@@ -16,7 +16,7 @@ def cluster_mesh_graph_search(mesh, normal_match_thresh=0.866, min_cluster_size=
     mesh : LidarMesh
         Mesh object to cluster
     normal_match_thresh : float
-        Norm difference threshold to cluster triangles together (default value corresponds to ~10 degrees difference)
+        Norm difference threshold to cluster triangles together (default value corresponds to ~30 degrees difference)
     min_cluster_size : int
         Minimum cluster size
 
@@ -167,7 +167,7 @@ def plot_clusters(P, mesh, clusters):
         cluster_idxs[idxs] = i
     
     fig = px.scatter_3d(P, x=0, y=1, z=2, color=cluster_idxs.astype(str))
-    fig.update_layout(width=1000, height=600, scene=dict(
+    fig.update_layout(width=1500, height=900, scene=dict(
                     aspectmode='data'))
     fig.update_traces(marker_size=2)
     return fig

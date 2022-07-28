@@ -158,7 +158,7 @@ class LidarMesh:
 
         """
         mesh_data = go.Mesh3d(x=self.P[:,0], y=self.P[:,1], z=self.P[:,2], 
-            i=self.DT.simplices[:,0], j=self.DT.simplices[:,1], k=self.DT.simplices[:,2], flatshading=True)
+            i=self.DT.simplices[:,0], j=self.DT.simplices[:,1], k=self.DT.simplices[:,2], flatshading=True, opacity=0.75)
 
         # Extract the lists of x, y, z coordinates of the triangle vertices and connect them by a line
         Xe = []; Ye = []; Ze = []

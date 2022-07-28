@@ -284,7 +284,6 @@ class Scan:
 
             # If shared, adjust plane accordingly
             if sum(merge_mask) == 2:
-                print("hi")
                 anchor_idxs = new_face[new_face!=-1]
                 anchor_verts = np.asarray(vertices)[anchor_idxs]
                 new_plane = merge_plane(merge_mask, anchor_verts, plane_pts, p.normal)
