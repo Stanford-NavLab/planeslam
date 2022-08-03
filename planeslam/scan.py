@@ -13,7 +13,7 @@ from planeslam.extraction import scan_from_clusters, planes_from_clusters
 from planeslam.clustering import cluster_mesh_graph_search
 from planeslam.mesh import LidarMesh
 from planeslam.geometry.plane import BoundedPlane, plane_to_plane_dist, merge_plane
-from planeslam.geometry.box import box_from_pts
+from planeslam.geometry.box import Box, box_from_pts
 from planeslam.geometry.rectangle import Rectangle
 
 
@@ -241,6 +241,24 @@ class Scan:
         
         """
         
+
+    def remove_small_planes(self, area_thresh=1.0):
+        """Remove planes with small area
+        
+        """
+        keep = list(range(len(self.planes)))
+
+        for i, p in enumerate(self.planes):
+            # Project p into it's own basis
+            p_proj = (np.linalg.inv(p.basis) @ p.vertices.T).T
+            # Form 2D box from projection
+            p_box = Box(p_proj[0,0:2], p_proj[2,0:2])
+            if p_box.area() < area_thresh:
+                keep.remove(i)
+        
+        self.planes = [self.planes[i] for i in keep]
+
+
     
     def fuse_edges(self, vertex_merge_thresh=2.0):
         """Fuse edges
