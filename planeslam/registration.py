@@ -669,7 +669,7 @@ def decoupled_GN_register(source, target):
         R_hat = so3_expmap(dw.flatten()) @ R_hat
     
     r, _ = so3_residual(R_hat, n_s, n_t)
-    print("final rotation loss: ", np.linalg.norm(r)**2)
+    #print("final rotation loss: ", np.linalg.norm(r)**2)
 
     # Translation estimation
     Rn_s = (R_hat @ n_s.reshape((3, -1), order='F'))

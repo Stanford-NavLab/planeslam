@@ -7,6 +7,7 @@ This module defines the Scan class and relevant utilities.
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import open3d as o3d
 
 from planeslam.general import downsample
 from planeslam.extraction import scan_from_clusters, planes_from_clusters
@@ -114,6 +115,29 @@ class Scan:
             data.append(go.Scatter3d(x=xs, y=ys, z=zs, mode="lines", line=dict(color="red",width=2), showlegend=False))
         
         return data
+
+
+    def o3d_geometries(self):
+        """Generate open3d geometries for plotting
+        
+        """
+        geoms = []
+        for p in self.planes:
+            verts = p.vertices
+            line_set = o3d.geometry.LineSet()
+            line_set.points = o3d.utility.Vector3dVector(verts)
+            line_set.lines = o3d.utility.Vector2iVector([[0,1],[1,2],[2,3],[3,0]])
+            mesh1 = o3d.geometry.TriangleMesh()
+            mesh1.vertices = o3d.utility.Vector3dVector(verts)
+            mesh1.triangles = o3d.utility.Vector3iVector([[0,1,2],[0,2,3]])
+            mesh2 = o3d.geometry.TriangleMesh()
+            mesh2.vertices = o3d.utility.Vector3dVector(verts)
+            mesh2.triangles = o3d.utility.Vector3iVector([[0,2,1],[0,3,2]])
+            #mesh.paint_uniform_color([1, 0.706, 0])
+            geoms += [line_set, mesh1, mesh2]
+
+        return geoms
+
     
     def merge(self, scan, norm_thresh=0.1, dist_thresh=5.0):
         """Merge 
