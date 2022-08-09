@@ -7,6 +7,7 @@ import os
 import sys
 import time
 import open3d as o3d
+from copy import deepcopy
 
 import planeslam.io as io
 from planeslam.scan import pc_to_scan
@@ -32,8 +33,10 @@ if __name__ == "__main__":
     for i in range(num_scans):
         PCs[i] = NED_to_ENU(PCs[i])
     scans = num_scans * [None]
+    scans_transformed = num_scans * [None]
 
     scans[0] = pc_to_scan(PCs[0])
+    scans_transformed[0] = deepcopy(scans[0])
     merged = scans[0]
 
     # Setup visualization
@@ -46,8 +49,10 @@ if __name__ == "__main__":
     vis.update_renderer()
 
     T_abs = np.eye(4)
+    T_abs[:3,3] = drone_positions[0]
+    scans_transformed[0].transform(T_abs[:3,:3], T_abs[:3,3])
     
-    input("Press any key to begin")
+    #input("Press any key to begin")
     
     print("Beginning...")
     for i in range(len(scans)-1):
@@ -55,21 +60,22 @@ if __name__ == "__main__":
         # Extraction
         start_time = time.time()
         scans[i+1] = pc_to_scan(PCs[i+1])
+        scans_transformed[i+1] = deepcopy(scans[i+1])
         print("  extraction time: ", time.time() - start_time)
 
         # Registration
         start_time = time.time()
         R_hat, t_hat = decoupled_GN_register(scans[i], scans[i+1])
-        T_hat = np.vstack((np.hstack((R_hat, t_hat)), np.hstack((np.zeros(3), 1))))
+        T_hat = np.vstack((np.hstack((R_hat, -t_hat)), np.hstack((np.zeros(3), 1))))
         T_abs = T_hat @ T_abs
         R_abs = T_abs[:3,:3]
         t_abs = T_abs[:3,3]
-        scans[i+1].transform(R_abs, t_abs.flatten())
+        scans_transformed[i+1].transform(R_abs, t_abs.flatten())
         print("  registration time: ", time.time() - start_time)
         
         # Merging
         start_time = time.time()
-        merged = merged.merge(scans[i+1])
+        merged = merged.merge(scans_transformed[i+1])
         merged.reduce_inside()
         merged.remove_small_planes()
         merged.fuse_edges()

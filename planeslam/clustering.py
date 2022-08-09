@@ -161,7 +161,7 @@ def plot_clusters(P, mesh, clusters):
     list(px.scatter_3d(P, x=0, y=1, z=2, color=cluster_idxs.astype(str)).select_traces())
     
     """
-    cluster_idxs = np.zeros(len(P))
+    cluster_idxs = -np.ones(len(P))
     for i, c in enumerate(clusters):
         idxs = np.unique(mesh.DT.simplices[c,:]) 
         cluster_idxs[idxs] = i

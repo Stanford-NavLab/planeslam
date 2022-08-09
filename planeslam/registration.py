@@ -673,6 +673,6 @@ def decoupled_GN_register(source, target):
 
     # Translation estimation
     Rn_s = (R_hat @ n_s.reshape((3, -1), order='F'))
-    t_hat = np.linalg.lstsq(Rn_s.T, d_s - d_t, rcond=None)[0]
+    t_hat = np.linalg.lstsq(Rn_s.T, d_t - d_s, rcond=None)[0]
 
     return R_hat, t_hat
