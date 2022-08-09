@@ -14,6 +14,7 @@ from planeslam.scan import pc_to_scan
 from planeslam.registration import decoupled_GN_register
 from planeslam.clustering import mesh_cluster_pts
 from planeslam.general import NED_to_ENU
+from planeslam.geometry.util import quat_to_rot_mat
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
@@ -39,18 +40,32 @@ if __name__ == "__main__":
     scans_transformed[0] = deepcopy(scans[0])
     merged = scans[0]
 
-    # Setup visualization
-    vis = o3d.visualization.Visualizer()
-    vis.create_window()
+    # Setup visualizations
+    scan_vis = o3d.visualization.Visualizer()
+    scan_vis.create_window()
     geoms = merged.o3d_geometries()
     for g in geoms:
-        vis.add_geometry(g)
-    vis.poll_events()
-    vis.update_renderer()
+        scan_vis.add_geometry(g)
+    scan_vis.poll_events()
+    scan_vis.update_renderer()
 
-    T_abs = np.eye(4)
-    T_abs[:3,3] = drone_positions[0]
-    scans_transformed[0].transform(T_abs[:3,:3], T_abs[:3,3])
+    traj_vis = o3d.visualization.Visualizer()
+    traj_vis.create_window()
+    traj_points = o3d.geometry.PointCloud()
+    traj_lines = o3d.geometry.LineSet()
+    traj_vis.add_geometry(traj_points)
+    traj_vis.add_geometry(traj_lines)
+    traj_vis.poll_events()
+    traj_vis.update_renderer()
+
+    # Initialize initial absolute pose
+    R_abs = quat_to_rot_mat(drone_orientations[0])
+    t_abs = drone_positions[0,:].copy()
+    
+    scans_transformed[0].transform(R_abs, t_abs)
+
+    traj_est = np.zeros((num_scans, 3))
+    traj_est[0] = t_abs
     
     #input("Press any key to begin")
     
@@ -67,9 +82,8 @@ if __name__ == "__main__":
         start_time = time.time()
         R_hat, t_hat = decoupled_GN_register(scans[i], scans[i+1])
         T_hat = np.vstack((np.hstack((R_hat, -t_hat)), np.hstack((np.zeros(3), 1))))
-        T_abs = T_hat @ T_abs
-        R_abs = T_abs[:3,:3]
-        t_abs = T_abs[:3,3]
+        t_abs -= (R_abs @ t_hat).flatten()
+        R_abs = R_hat @ R_abs
         scans_transformed[i+1].transform(R_abs, t_abs.flatten())
         print("  registration time: ", time.time() - start_time)
         
@@ -83,12 +97,18 @@ if __name__ == "__main__":
 
         # Update visualization
         geoms = merged.o3d_geometries()
-        # for g in geoms:
-        #     vis.update_geometry(g)
-        vis.clear_geometries()
+        scan_vis.clear_geometries()
         for g in geoms:
-            vis.add_geometry(g)
-        vis.poll_events()
-        vis.update_renderer()
+            scan_vis.add_geometry(g)
+        scan_vis.poll_events()
+        scan_vis.update_renderer()
+
+        traj_points.points = o3d.utility.Vector3dVector(np.vstack((np.asarray(traj_points.points), t_abs)))
+        traj_lines.points = o3d.utility.Vector3dVector(np.vstack((np.asarray(traj_lines.points), t_abs)))
+        traj_lines.lines = o3d.utility.Vector2iVector(np.vstack((np.asarray(traj_lines.lines), np.array([i,i+1]))))
+        traj_vis.update_geometry(traj_points)
+        traj_vis.update_geometry(traj_lines)
+        traj_vis.poll_events()
+        traj_vis.update_renderer()
 
         time.sleep(0.1)

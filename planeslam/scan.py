@@ -342,7 +342,7 @@ class Scan:
 
 
 
-def pc_to_scan(P):
+def pc_to_scan(P, ds_rate=2):
     """Point cloud to scan
 
     Parameters
@@ -357,7 +357,7 @@ def pc_to_scan(P):
     
     """
     # Downsample
-    P = downsample(P, factor=2, axis=0)
+    P = downsample(P, factor=ds_rate, axis=0)
 
     # Create the mesh
     mesh = LidarMesh(P)
