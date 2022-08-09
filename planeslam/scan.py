@@ -209,33 +209,10 @@ class Scan:
         return Scan(merged_planes)
 
 
-    def reduce_inside(self):
+    def reduce_inside(self, p2p_dist_thresh=1.0):
         """Reduce by checking for planes inside of each other
-        
-        Reduce scan by merging vertices and planes.
-
-        Merge planes inside of each other:
-            Iterate through the planes:
-                For each plane P:
-                    Project other plane Q to P's basis
-                    Check if Q is fully contained within P
-                        If so, get rid of Q 
-        
-        Merge planes next to each other:
-            Check if there is a pair of vertices close to another pair of vertices
-            for another plane with similar normal
-
 
         """
-        # Iterate through the planes, and for each new plane, check if 
-        # any of it's vertices are close to any existing vertices
-
-        # check = set(range(len(self.planes)))
-        # keep = set()
-
-        # while check:
-        #     i = check.pop()
-
         keep = set(range(len(self.planes)))
 
         for i, p in enumerate(self.planes):
@@ -251,8 +228,9 @@ class Scan:
                         q_proj = (np.linalg.inv(p.basis) @ q.vertices.T).T
                         q_rect = Rectangle(q_proj[:,0:2])
                         if p_rect.contains(q_rect):
-                            print(f'{i} contains {j}')
-                            to_remove.add(j)
+                            if plane_to_plane_dist(p, q) < p2p_dist_thresh:
+                                #print(f'{i} contains {j}')
+                                to_remove.add(j)
 
             keep.difference_update(to_remove)
         
@@ -342,7 +320,7 @@ class Scan:
 
 
 
-def pc_to_scan(P, ds_rate=2):
+def pc_to_scan(P, ds_rate=2, edge_len_lim=10):
     """Point cloud to scan
 
     Parameters
@@ -362,7 +340,7 @@ def pc_to_scan(P, ds_rate=2):
     # Create the mesh
     mesh = LidarMesh(P)
     # Prune the mesh
-    mesh.prune(edge_len_lim=10)
+    mesh.prune(edge_len_lim=edge_len_lim)
     # Cluster the mesh with graph search
     clusters, avg_normals = cluster_mesh_graph_search(mesh)
 

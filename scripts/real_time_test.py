@@ -40,15 +40,20 @@ if __name__ == "__main__":
     scans_transformed[0] = deepcopy(scans[0])
     merged = scans[0]
 
-    # Setup visualizations
-    scan_vis = o3d.visualization.Visualizer()
-    scan_vis.create_window()
-    geoms = merged.o3d_geometries()
-    for g in geoms:
-        scan_vis.add_geometry(g)
-    scan_vis.poll_events()
-    scan_vis.update_renderer()
+    # Setup scan visualization
+    # scan_vis = o3d.visualization.Visualizer()
+    # scan_vis.create_window()
+    # geoms = merged.o3d_geometries()
+    # for g in geoms:
+    #     scan_vis.add_geometry(g)
+    # scan_vis.poll_events()
+    # scan_vis.update_renderer()
 
+    # Initialize initial absolute pose
+    R_abs = quat_to_rot_mat(drone_orientations[0])
+    t_abs = drone_positions[0,:].copy()
+
+    # Trajectory visualization
     traj_vis = o3d.visualization.Visualizer()
     traj_vis.create_window()
     traj_points = o3d.geometry.PointCloud()
@@ -57,10 +62,6 @@ if __name__ == "__main__":
     traj_vis.add_geometry(traj_lines)
     traj_vis.poll_events()
     traj_vis.update_renderer()
-
-    # Initialize initial absolute pose
-    R_abs = quat_to_rot_mat(drone_orientations[0])
-    t_abs = drone_positions[0,:].copy()
     
     scans_transformed[0].transform(R_abs, t_abs)
 
@@ -96,16 +97,18 @@ if __name__ == "__main__":
         print("  merge time: ", time.time() - start_time)
 
         # Update visualization
-        geoms = merged.o3d_geometries()
-        scan_vis.clear_geometries()
-        for g in geoms:
-            scan_vis.add_geometry(g)
-        scan_vis.poll_events()
-        scan_vis.update_renderer()
+        # geoms = merged.o3d_geometries()
+        # scan_vis.clear_geometries()
+        # for g in geoms:
+        #     scan_vis.add_geometry(g)
+        # scan_vis.poll_events()
+        # scan_vis.update_renderer()
 
         traj_points.points = o3d.utility.Vector3dVector(np.vstack((np.asarray(traj_points.points), t_abs)))
         traj_lines.points = o3d.utility.Vector3dVector(np.vstack((np.asarray(traj_lines.points), t_abs)))
         traj_lines.lines = o3d.utility.Vector2iVector(np.vstack((np.asarray(traj_lines.lines), np.array([i,i+1]))))
+        print(traj_points.points)
+        print(traj_lines.points)
         traj_vis.update_geometry(traj_points)
         traj_vis.update_geometry(traj_lines)
         traj_vis.poll_events()
