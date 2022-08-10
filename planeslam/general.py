@@ -177,7 +177,6 @@ def plot_normals(P,normals,scale=10.):
         ys[3*i+1] = P[i,1]+scale*normals[i,1]
         zs[3*i] = P[i,2]
         zs[3*i+1] = P[i,2]+scale*normals[i,2]
-
     data.append(go.Scatter3d(x=xs,y=ys,z=zs,mode="lines"))
 
     fig = go.Figure(data=data)
