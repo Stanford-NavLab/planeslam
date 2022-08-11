@@ -5,12 +5,7 @@ Functions for plane-based registration.
 """
 
 import numpy as np
-try:
-    import torch
-    import torch.autograd.functional as F
-    from pytorch3d.transforms.so3 import so3_exp_map
-except ModuleNotFoundError:
-    print("torch libraries not found, skipping import")
+from scipy.optimize import linear_sum_assignment
 
 from planeslam.geometry.plane import plane_to_plane_dist
 from planeslam.geometry.util import skew
@@ -63,8 +58,10 @@ from planeslam.geometry.rectangle import Rectangle
 
 
 def get_correspondences(source, target):
+    """Get correspondences between two scans
+
     """
-    """
+    # Determine an initial set of matches based on heuristic scoring
     n = len(source.planes) # source P
     m = len(target.planes) # target Q
     score_mat = np.zeros((n,m))
@@ -74,17 +71,23 @@ def get_correspondences(source, target):
             n2 = target.planes[j].normal
             c1 = source.planes[i].center
             c2 = target.planes[j].center
-            score_mat[i,j] = 20 * np.linalg.norm(n1 - n2) + np.linalg.norm(c1 - c2)
+            a1 = source.planes[i].area()
+            a2 = target.planes[j].area()
+            score_mat[i,j] = 100 * np.linalg.norm(n1 - n2) + np.linalg.norm(c1 - c2) + 0.1 * np.abs(a1 - a2)
+
+    matches = linear_sum_assignment(score_mat)
     
-    matches = np.argmin(score_mat, axis=1)
+    # Prune the matches based on threshold requirements
+    #matches = np.argmin(score_mat, axis=1)
     corrs = []
-    for i, j in enumerate(matches):
-        n1 = source.planes[i].normal.flatten()
-        n2 = target.planes[j].normal.flatten()
-        c1 = source.planes[i].center
-        c2 = target.planes[j].center
-        if np.dot(n1, n2) > 0.707 and np.linalg.norm(c1 - c2) < 20.0:  # 45 degrees
-            corrs.append((i,j))
+    for i in range(len(matches[0])):
+        n1 = source.planes[matches[0][i]].normal.flatten()
+        n2 = target.planes[matches[1][i]].normal.flatten()
+        c1 = source.planes[matches[0][i]].center
+        c2 = target.planes[matches[1][i]].center
+        #if np.dot(n1, n2) > 0.707 and plane_to_plane_dist(source.planes[i], target.planes[j]) < 5.0:  # 45 degrees
+        if np.dot(n1, n2) > 0.707 and np.linalg.norm(c1 - c2) < 20.0:
+            corrs.append((matches[0][i],matches[1][i]))
     
     return corrs
 
@@ -216,39 +219,6 @@ def transform_normals(n, q):
     n = n.reshape((3*N, 1), order='F')
     return n
 
-
-# def residual(n_s, d_s, n_t, d_t, q):
-#     """Residual for Gauss-Newton
-
-#     Parameters
-#     ----------
-#     n_s : np.array (3N x 1)
-#         Stacked vector of source normals
-#     d_s : np.array (N x 1)
-#         Stacked vector of source distances
-#     n_t : np.array (3N x 1)
-#         Stacked vector of target normals
-#     d_t : np.array (N x 1)
-#         Stacked vector of target distances
-#     q : np.array (6 x 1)
-#         Parameterized transformation
-
-#     Returns
-#     -------
-#     r : np.array (4N x 1)
-#         Stacked vector of plane-to-plane error residuals
-#     n_q : np.array (3N x 1)
-#         Source normals transformed by q
-    
-#     """
-#     n_q = transform_normals(n_s, q)
-
-#     # Transform distances
-#     t = q[:3]
-#     d_q = d_s + n_q.reshape((-1,3)) @ t 
-
-#     r = np.vstack((n_q - n_t, d_q - d_t))
-#     return r, n_q
 
 def residual(n_s, d_s, n_t, d_t, T):
     """Residual for Gauss-Newton
@@ -382,196 +352,25 @@ def GN_register(source, target):
     n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
 
     # Initial transformation
-    t = np.array([0, 1, 0])[:,None]
-    u = np.array([1, 0, 0])[:,None]
-    theta = 0.1
-    q = np.vstack((t, theta*u))
+    T = np.eye(4)
 
     # Gauss-Newton
-    n_iters = 10
-    lmbda = 1e-6
-    mu = 5e-1
+    n_iters = 20
+    lmbda = 0.0
+    mu = 1.0
 
     for i in range(n_iters):
-        r, n_q = residual(n_s, d_s, n_t, d_t, q)
+        r, n_q = residual(n_s, d_s, n_t, d_t, T)
+        print("loss: ", np.linalg.norm(r)**2)
         J = jacobian(n_s, n_q)
-        q = q - mu * np.linalg.inv(J.T @ J + lmbda * np.eye(6)) @ J.T @ r
+        dv = -mu * np.linalg.inv(J.T @ J + lmbda*np.eye(6)) @ J.T @ r
+        T = se3_expmap(dv.flatten()) @ T
     
-    r, _ = residual(n_s, d_s, n_t, d_t, q)
+    r, _ = residual(n_s, d_s, n_t, d_t, T)
     print("final loss: ", np.linalg.norm(r)**2)
 
-    R_hat = so3_expmap(q[3:].flatten())
-    t_hat = q[:3]
-
-    return R_hat, t_hat
-
-
-def torch_residual(q, n_s, d_s, n_t, d_t):
-    """Residual used to define loss to optimize
-
-    Parameters
-    ----------
-    q : torch.tensor (6 x 1)
-        Current parameterized transformation estimate
-    n_s : torch.tensor (3N x 1)
-        Stacked vector of source normals
-    d_s : torch.tensor (N x 1)
-        Stacked vector of source distances
-    n_t : torch.tensor (3N x 1)
-        Stacked vector of target normals
-    d_t : torch.tensor (N x 1)
-        Stacked vector of target distances
-
-    Returns
-    -------
-    r : torch.tensor (4N x 1)
-        Stacked vector of plane-to-plane error residuals
-    
-    """
-    assert len(n_s) % 3 == 0, "Invalid normals vector, length should be multiple of 3"
-    N = int(len(n_s) / 3)
-
-    t = q[:3]
-    log_R = q[3:].T
-
-    R = so3_exp_map(log_R)
-    n_q = (R @ n_s.reshape((N, 3)).T).T.reshape((3*N, 1))
-
-    d_q = d_s + n_q.reshape((-1,3)) @ t 
-
-    r = torch.vstack((n_q - n_t, d_q - d_t))
-    return r
-
-
-def torch_GN_register(source, target, device):
-    """Register source to target scan using Gauss Newton approach with pytorch Jacobian computation
-    
-    Parameters
-    ----------
-    source : Scan
-        Source scan
-    target : Scan
-        Target scan
-    device : str
-        Pytorch device (i.e. 'cuda' or 'cpu')
-
-    Returns
-    -------
-    R_hat : np.array (3 x 3)
-        Estimated rotation
-    t_hat : np.array (3 x 1) 
-        Estimated translation
-    
-    """
-    # Find correspondences and extract features
-    correspondences = get_correspondences(source, target)
-    n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
-
-    # If there are no correspondences, just return identity
-    if len(correspondences) == 0:
-        return np.eye(3), np.zeros((3,1))
-
-    # Convert features to torch tensors
-    n_s = torch.from_numpy(n_s).float().to(device)
-    d_s = torch.from_numpy(d_s).float().to(device)
-    n_t = torch.from_numpy(n_t).float().to(device)
-    d_t = torch.from_numpy(d_t).float().to(device)
-
-    # Randomly initialize initial estimate
-    #q = torch.randn(6, 1, dtype=torch.float32, device=device)
-    q = torch.zeros(6, 1, dtype=torch.float32, device=device)
-
-    # Gauss-Newton
-    n_iters = 10
-    lmbda = 1e-6
-    mu = 5e-1
-
-    for i in range(n_iters):
-        r = torch_residual(q, n_s, d_s, n_t, d_t)
-        # Compute Jacobian with pytorch
-        J = F.jacobian(torch_residual, (q, n_s, d_s, n_t, d_t), vectorize=True)[0].reshape((-1,6))
-        q = q - mu * torch.linalg.inv(J.T @ J + lmbda * torch.eye(6, device=device)) @ J.T @ r
-    
-    r = torch_residual(q, n_s, d_s, n_t, d_t)
-    print("final loss: ", torch.linalg.norm(r)**2)
-
-    R_hat = so3_exp_map(q[3:].T).cpu().detach().numpy()[0]
-    t_hat = q[:3].cpu().detach().numpy()
-
-    return R_hat, t_hat
-
-
-def torch_register(source, target, device):
-    """Register source to target scan using pytorch SGD optimization
-    
-    Parameters
-    ----------
-    source : Scan
-        Source scan
-    target : Scan
-        Target scan
-    device : str
-        Pytorch device (i.e. 'cuda' or 'cpu')
-
-    Returns
-    -------
-    R_hat : np.array (3 x 3)
-        Estimated rotation
-    t_hat : np.array (3 x 1) 
-        Estimated translation
-    
-    """
-    # Find correspondences and extract features
-    correspondences = get_correspondences(source, target)
-    n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
-
-    # Convert features to torch tensors
-    n_s = torch.from_numpy(n_s).float().to(device)
-    d_s = torch.from_numpy(d_s).float().to(device)
-    n_t = torch.from_numpy(n_t).float().to(device)
-    d_t = torch.from_numpy(d_t).float().to(device)
-
-    # Initial transformation
-    #q_init = torch.randn(6, 1, dtype=torch.float32, device=device)
-    q_init = torch.zeros(6, 1, dtype=torch.float32, device=device)
-
-    # Instantiate copy of the initialization 
-    q = q_init.clone().detach()
-    q.requires_grad = True
-
-    r = torch_residual(q, n_s, d_s, n_t, d_t)
-    loss = torch.linalg.norm(r)**2
-
-    # Init the optimizer
-    optimizer = torch.optim.SGD([q], lr=0.01, momentum=0.0)
-
-    # Run the optimization
-    prev_loss = -loss
-    d_loss = 1
-    it = 0
-    max_it = 250
-    while d_loss > 1e-5 and it < max_it:
-        # Re-init the optimizer gradients
-        optimizer.zero_grad()
-
-        # Compute loss
-        r = torch_residual(q, n_s, d_s, n_t, d_t)
-        loss = torch.linalg.norm(r)**2
-
-        d_loss = torch.abs(prev_loss - loss)
-
-        loss.backward(retain_graph=True)
-
-        prev_loss = loss
-        
-        # Apply the gradients
-        optimizer.step()
-        it += 1
-
-    print('Final loss: ', loss.cpu().detach().numpy(), ' iterations: ', it)
-
-    R_hat = so3_exp_map(q[3:].T).cpu().detach().numpy()[0]
-    t_hat = q[:3].cpu().detach().numpy()
+    R_hat = T[:3,:3]
+    t_hat = T[:3,3]
 
     return R_hat, t_hat
 
@@ -663,16 +462,17 @@ def decoupled_GN_register(source, target):
 
     for i in range(n_iters):
         r, n_q = so3_residual(R_hat, n_s, n_t)
-        #print("loss: ", np.linalg.norm(r)**2)
+        #print("  loss: ", np.linalg.norm(r)**2)
         J = so3_jacobian(n_q)
         dw = - mu * np.linalg.inv(J.T @ J + lmbda*np.eye(3)) @ J.T @ r
         R_hat = so3_expmap(dw.flatten()) @ R_hat
     
     r, _ = so3_residual(R_hat, n_s, n_t)
-    #print("final rotation loss: ", np.linalg.norm(r)**2)
+    print("final rotation loss: ", np.linalg.norm(r)**2)
 
     # Translation estimation
     Rn_s = (R_hat @ n_s.reshape((3, -1), order='F'))
     t_hat = np.linalg.lstsq(Rn_s.T, d_t - d_s, rcond=None)[0]
+    print("final translation loss: ", np.linalg.norm(Rn_s.T @ t_hat - (d_t - d_s))**2)
 
     return R_hat, t_hat

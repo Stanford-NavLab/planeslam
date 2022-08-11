@@ -251,11 +251,7 @@ class Scan:
         keep = list(range(len(self.planes)))
 
         for i, p in enumerate(self.planes):
-            # Project p into it's own basis
-            p_proj = (np.linalg.inv(p.basis) @ p.vertices.T).T
-            # Form 2D box from projection
-            p_box = Box(p_proj[0,0:2], p_proj[2,0:2])
-            if p_box.area() < area_thresh:
+            if p.area() < area_thresh:
                 keep.remove(i)
         
         self.planes = [self.planes[i] for i in keep]

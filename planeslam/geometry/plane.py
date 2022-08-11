@@ -116,6 +116,22 @@ class BoundedPlane:
         """
         V = self.vertices
         return [(V[i], V[(i+1)%4]) for i in range(4)]
+
+
+    def area(self):
+        """Compute the area of this plane
+        
+        Returns
+        -------
+        float
+            Area of plane
+
+        """
+        # Project onto own basis
+        p_proj = (np.linalg.inv(self.basis) @ self.vertices.T).T
+        # Form 2D box from projection
+        p_box = Box(p_proj[0,0:2], p_proj[2,0:2])
+        return p_box.area()
     
 
     def plot(self, ax=None, color='b', show_normal=False):
