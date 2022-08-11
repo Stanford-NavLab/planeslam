@@ -73,21 +73,27 @@ def get_correspondences(source, target):
             c2 = target.planes[j].center
             a1 = source.planes[i].area()
             a2 = target.planes[j].area()
-            score_mat[i,j] = 100 * np.linalg.norm(n1 - n2) + np.linalg.norm(c1 - c2) + 0.1 * np.abs(a1 - a2)
+            #score_mat[i,j] = 100 * np.linalg.norm(n1 - n2) + np.linalg.norm(c1 - c2) + 0.1 * np.abs(a1 - a2)
+            score_mat[i,j] = 20 * np.linalg.norm(n1 - n2) + np.linalg.norm(c1 - c2)
 
-    matches = linear_sum_assignment(score_mat)
+    #matches = linear_sum_assignment(score_mat)
     
     # Prune the matches based on threshold requirements
-    #matches = np.argmin(score_mat, axis=1)
+    matches = np.argmin(score_mat, axis=1)
     corrs = []
-    for i in range(len(matches[0])):
-        n1 = source.planes[matches[0][i]].normal.flatten()
-        n2 = target.planes[matches[1][i]].normal.flatten()
-        c1 = source.planes[matches[0][i]].center
-        c2 = target.planes[matches[1][i]].center
+    #for i in range(len(matches[0])):
+    for i, j in enumerate(matches):
+        # n1 = source.planes[matches[0][i]].normal.flatten()
+        # n2 = target.planes[matches[1][i]].normal.flatten()
+        # c1 = source.planes[matches[0][i]].center
+        # c2 = target.planes[matches[1][i]].center
+        n1 = source.planes[i].normal.flatten()
+        n2 = target.planes[j].normal.flatten()
+        c1 = source.planes[i].center
+        c2 = target.planes[j].center
         #if np.dot(n1, n2) > 0.707 and plane_to_plane_dist(source.planes[i], target.planes[j]) < 5.0:  # 45 degrees
         if np.dot(n1, n2) > 0.707 and np.linalg.norm(c1 - c2) < 20.0:
-            corrs.append((matches[0][i],matches[1][i]))
+            corrs.append((i,j))
     
     return corrs
 
@@ -474,5 +480,61 @@ def decoupled_GN_register(source, target):
     Rn_s = (R_hat @ n_s.reshape((3, -1), order='F'))
     t_hat = np.linalg.lstsq(Rn_s.T, d_t - d_s, rcond=None)[0]
     print("final translation loss: ", np.linalg.norm(Rn_s.T @ t_hat - (d_t - d_s))**2)
+    print("translation residuals: ", Rn_s.T @ t_hat - (d_t - d_s))
+
+    return R_hat, t_hat
+
+
+def decoupled_GN_opt(source, target, correspondences):
+    """
+    
+    """
+    n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
+
+    # Rotation estimation
+    R_hat = np.eye(3)
+
+    n_iters = 5
+    lmbda = 1e-8
+    mu = 1.0
+
+    for i in range(n_iters):
+        r, n_q = so3_residual(R_hat, n_s, n_t)
+        #print("  loss: ", np.linalg.norm(r)**2)
+        J = so3_jacobian(n_q)
+        dw = - mu * np.linalg.inv(J.T @ J + lmbda*np.eye(3)) @ J.T @ r
+        R_hat = so3_expmap(dw.flatten()) @ R_hat
+    
+    r, _ = so3_residual(R_hat, n_s, n_t)
+    print("final rotation loss: ", np.linalg.norm(r)**2)
+
+    # Translation estimation
+    Rn_s = (R_hat @ n_s.reshape((3, -1), order='F'))
+    t_hat = np.linalg.lstsq(Rn_s.T, d_t - d_s, rcond=None)[0]
+    t_loss = np.linalg.norm(Rn_s.T @ t_hat - (d_t - d_s))**2
+    t_res = np.abs(Rn_s.T @ t_hat - (d_t - d_s))
+    print("final translation loss: ", t_loss)
+    print("translation residuals: ", t_res)
+
+    return R_hat, t_hat, t_loss, t_res
+
+
+def robust_GN_register(source, target):
+    """
+    
+    """
+    # Find correspondences and extract features
+    correspondences = get_correspondences(source, target)
+    
+    # Do registration
+    R_hat, t_hat, t_loss, t_res = decoupled_GN_opt(source, target, correspondences)
+
+    # Check translation loss
+    if t_loss > 1.0:
+        fault = np.argmax(t_res)
+        del correspondences[fault]
+        # Redo registration
+        print("re-running registration")
+        R_hat, t_hat, t_loss, t_res = decoupled_GN_opt(source, target, correspondences)
 
     return R_hat, t_hat
