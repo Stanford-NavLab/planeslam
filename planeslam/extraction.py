@@ -100,7 +100,8 @@ def bd_plane_from_pts_basis(pts, n, basis):
     axes = list(axes)
 
     # Find 2D bounding box of points within plane
-    plane_pts[:,plane_idx] = pts_proj[0,plane_idx]  # Coordinate in plane is constant
+    #plane_pts[:,plane_idx] = pts_proj[0,plane_idx]
+    plane_pts[:,plane_idx] = np.median(pts_proj[:,plane_idx])  # Coordinate in plane is constant
     min = np.amin(pts_proj[:,axes], axis=0)
     max = np.amax(pts_proj[:,axes], axis=0)
 
