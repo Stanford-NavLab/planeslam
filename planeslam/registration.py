@@ -335,6 +335,54 @@ def decoupled_register(source, target):
     return R_hat, t_hat
 
 
+def decoupled_opt(source, target, correspondences):
+    """
+    
+    """
+    n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
+
+    # Estimate rotation
+    H = np.zeros((3,3))
+    for i in range(len(correspondences)):
+        H += n_s[3*i:3*(i+1)] @ n_t[3*i:3*(i+1)].T
+    u, s, v = np.linalg.svd(H)
+    R_hat = u @ v
+
+    # Estimate translation
+    A = np.reshape(n_t, (-1,3))
+    b = d_t - d_s
+    t_hat = np.linalg.lstsq(A, b, rcond=None)[0]
+    t_res = np.abs(A @ t_hat - b)
+    t_loss = np.linalg.norm(t_res)**2
+
+    return R_hat, t_hat, t_loss, t_res
+
+
+def robust_decoupled_register(source, target):
+    """
+    
+    """
+    # Find correspondences and extract features
+    correspondences = get_correspondences(source, target)
+    
+    # Do registration
+    R_hat, t_hat, t_loss, t_res = decoupled_opt(source, target, correspondences)
+
+    max_faults = 3
+    num_faults = 0
+
+    # Check translation loss
+    while t_loss > 1.0 and num_faults < max_faults:
+        fault = np.argmax(t_res)
+        del correspondences[fault]
+        # Redo registration
+        #print("re-running registration")
+        R_hat, t_hat, t_loss, t_res = decoupled_opt(source, target, correspondences)
+        num_faults += 1
+
+    return R_hat, t_hat
+
+
 def GN_register(source, target):
     """Register source to target scan using Gauss Newton approach
     
@@ -506,15 +554,15 @@ def decoupled_GN_opt(source, target, correspondences):
         R_hat = so3_expmap(dw.flatten()) @ R_hat
     
     r, _ = so3_residual(R_hat, n_s, n_t)
-    print("final rotation loss: ", np.linalg.norm(r)**2)
+    print(" final rotation loss: ", np.linalg.norm(r)**2)
 
     # Translation estimation
     Rn_s = (R_hat @ n_s.reshape((3, -1), order='F'))
     t_hat = np.linalg.lstsq(Rn_s.T, d_t - d_s, rcond=None)[0]
-    t_loss = np.linalg.norm(Rn_s.T @ t_hat - (d_t - d_s))**2
     t_res = np.abs(Rn_s.T @ t_hat - (d_t - d_s))
-    print("final translation loss: ", t_loss)
-    print("translation residuals: ", t_res)
+    t_loss = np.linalg.norm(t_res)**2
+    print(" final translation loss: ", t_loss)
+    # print("translation residuals: ", t_res)
 
     return R_hat, t_hat, t_loss, t_res
 
@@ -529,12 +577,16 @@ def robust_GN_register(source, target):
     # Do registration
     R_hat, t_hat, t_loss, t_res = decoupled_GN_opt(source, target, correspondences)
 
+    max_faults = 3
+    num_faults = 0
+
     # Check translation loss
-    if t_loss > 1.0:
+    while t_loss > 1.0 and num_faults < max_faults:
         fault = np.argmax(t_res)
         del correspondences[fault]
         # Redo registration
-        print("re-running registration")
+        #print("re-running registration")
         R_hat, t_hat, t_loss, t_res = decoupled_GN_opt(source, target, correspondences)
+        num_faults += 1
 
     return R_hat, t_hat
