@@ -83,6 +83,17 @@ def downsample(arr, factor, axis):
         return arr[:,::factor]
 
 
+def adaptive_downsample(P, factor=5):
+    """Downsample a point cloud based on distances
+    
+    Points farther away will get sampled with higher probability
+    
+    """
+    dists = np.linalg.norm(P, axis=1)
+    keep_idxs = np.random.choice(np.arange(len(dists)), size=int(len(dists)/factor), replace=False, p=dists/np.sum(dists))
+    return P[keep_idxs]
+
+
 def normalize(v):
     """Normalize numpy vector
 

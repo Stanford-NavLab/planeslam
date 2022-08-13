@@ -538,6 +538,8 @@ def decoupled_GN_opt(source, target, correspondences):
     
     """
     n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
+    print("n_s ", n_s)
+    print("n_t ", n_t)
 
     # Rotation estimation
     R_hat = np.eye(3)
@@ -554,14 +556,14 @@ def decoupled_GN_opt(source, target, correspondences):
         R_hat = so3_expmap(dw.flatten()) @ R_hat
     
     r, _ = so3_residual(R_hat, n_s, n_t)
-    print(" final rotation loss: ", np.linalg.norm(r)**2)
+    #print(" final rotation loss: ", np.linalg.norm(r)**2)
 
     # Translation estimation
     Rn_s = (R_hat @ n_s.reshape((3, -1), order='F'))
     t_hat = np.linalg.lstsq(Rn_s.T, d_t - d_s, rcond=None)[0]
     t_res = np.abs(Rn_s.T @ t_hat - (d_t - d_s))
     t_loss = np.linalg.norm(t_res)**2
-    print(" final translation loss: ", t_loss)
+    #print(" final translation loss: ", t_loss)
     # print("translation residuals: ", t_res)
 
     return R_hat, t_hat, t_loss, t_res

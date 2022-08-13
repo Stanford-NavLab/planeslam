@@ -96,7 +96,7 @@ def axis_angle_to_rot_mat(axis, angle):
     return quat_to_rot_mat(q)
 
 
-def quat_to_rot_mat(quat):
+def quat_to_R(quat):
     """Convert quaternion to 3D rotation matrix 
 
     Parameters
@@ -112,6 +112,24 @@ def quat_to_rot_mat(quat):
     """
     r = R.from_quat(quat)
     return r.as_matrix()
+
+
+def R_to_quat(R_mat):
+    """Convert 3D rotation matrix to quaternion
+    
+    Parameters
+    ----------
+    R : np.array (3 x 3)
+        Rotation matrix
+
+    Returns
+    -------
+    np.array (1 x 4)
+        Quaternion in scalar-last (x, y, z, w) format
+
+    """
+    r = R.from_matrix(R_mat)
+    return r.as_quat()
 
 
 
