@@ -99,7 +99,7 @@ class Box:
         if np.all(int_min < int_max):
             return Box(int_min, int_max)
         else:
-            print("Intersection is empty")
+            #print("Intersection is empty")
             return None
         
 
@@ -120,6 +120,8 @@ class Box:
         
         V = self.vertices()
         ax.plot(np.hstack((V[:,0],V[0,0])), np.hstack((V[:,1],V[0,1])), color=color)
+    
+
 
 
 

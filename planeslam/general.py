@@ -101,6 +101,7 @@ def adaptive_downsample(P, factor=5):
         Downsampled point cloud
     
     """
+    np.random.seed(0)
     dists = np.linalg.norm(P, axis=1)
     keep_idxs = np.random.choice(np.arange(len(dists)), size=int(len(dists)/factor), replace=False, p=dists/np.sum(dists))
     return P[keep_idxs]

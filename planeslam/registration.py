@@ -81,6 +81,7 @@ def get_correspondences(source, target):
     # Prune the matches based on threshold requirements
     matches = np.argmin(score_mat, axis=1)
     corrs = []
+    target_corresponded = []  # only allow each target plane to be corresponded once
     #for i in range(len(matches[0])):
     for i, j in enumerate(matches):
         # n1 = source.planes[matches[0][i]].normal.flatten()
@@ -93,7 +94,9 @@ def get_correspondences(source, target):
         c2 = target.planes[j].center
         #if np.dot(n1, n2) > 0.707 and plane_to_plane_dist(source.planes[i], target.planes[j]) < 5.0:  # 45 degrees
         if np.dot(n1, n2) > 0.707 and np.linalg.norm(c1 - c2) < 20.0:
-            corrs.append((i,j))
+            if j not in target_corresponded:
+                corrs.append((i,j))
+                target_corresponded.append(j)
     
     return corrs
 
@@ -323,7 +326,7 @@ def solve_translation(R, n_s, d_s, d_t):
     t_res = np.abs(Rn_s.T @ t_hat - (d_t - d_s))
     t_loss = np.linalg.norm(t_res)**2
     print("final translation loss: ", np.linalg.norm(Rn_s.T @ t_hat - (d_t - d_s))**2)
-    print("translation residuals: ", Rn_s.T @ t_hat - (d_t - d_s))
+    #print("translation residuals: ", Rn_s.T @ t_hat - (d_t - d_s))
     return t_hat, t_res, t_loss
 
 
@@ -588,7 +591,7 @@ def decoupled_GN_opt(source, target, correspondences):
     return R_hat, t_hat, t_loss, t_res
 
 
-def robust_GN_register(source, target):
+def robust_GN_register(source, target, t_loss_thresh=1.0, max_faults=3):
     """Robust (decoupled) Gauss-newton
     
     """
@@ -598,12 +601,13 @@ def robust_GN_register(source, target):
     # Do registration
     R_hat, t_hat, t_loss, t_res = decoupled_GN_opt(source, target, correspondences)
 
-    max_faults = 3
+    max_faults = max_faults
     num_faults = 0
 
     # Check translation loss
-    while t_loss > 1.0 and num_faults < max_faults:
+    while t_loss > t_loss_thresh and num_faults < max_faults:
         fault = np.argmax(t_res)
+        print("deleting ", correspondences[fault])
         del correspondences[fault]
         # Redo registration
         #print("re-running registration")
@@ -661,3 +665,10 @@ def robust_basis_register(source, target):
         num_faults += 1
 
     return R_hat, t_hat
+
+
+def iterative_register(source, target):
+    """
+    
+    """
+    
