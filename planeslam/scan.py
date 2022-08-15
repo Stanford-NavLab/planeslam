@@ -9,7 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import open3d as o3d
 
-from planeslam.general import downsample
+from planeslam.general import downsample, adaptive_downsample
 from planeslam.extraction import scan_from_clusters, planes_from_clusters
 from planeslam.clustering import cluster_mesh_graph_search
 from planeslam.mesh import LidarMesh
@@ -28,6 +28,8 @@ class Scan:
     ----------
     planes : list
         List of BoundedPlane objects
+    basis : np.array (3 x 3)
+        Basis for the planes
     vertices : np.array (n_verts x 3)
         Ordered array of vertices in scan
     faces : list of lists
@@ -41,7 +43,7 @@ class Scan:
 
     """
 
-    def __init__(self, planes, vertices=None, faces=None, center=None):
+    def __init__(self, planes, basis, vertices=None, faces=None, center=None):
         """Constructor
         
         Parameters
@@ -51,6 +53,7 @@ class Scan:
 
         """
         self.planes = planes
+        self.basis = basis
 
         if vertices is not None:
             self.vertices = vertices
@@ -78,6 +81,7 @@ class Scan:
         """
         for p in self.planes:
             p.transform(R, t)
+        self.basis = R @ self.basis + t
         # TODO: comment back in once vertex and face generation implemented
         # self.vertices = (R @ self.vertices.T).T + t
         # self.center += t[:,None]
@@ -206,7 +210,7 @@ class Scan:
         for i in Q_unmatched:
             merged_planes.append(Q[i])
 
-        return Scan(merged_planes)
+        return Scan(merged_planes, self.basis)
 
 
     def reduce_inside(self, p2p_dist_thresh=1.0):
@@ -343,12 +347,12 @@ def pc_to_scan(P, ds_rate=2, edge_len_lim=10):
     # Form scan topology
     # planes, vertices, faces = scan_from_clusters(mesh, clusters, avg_normals)
     # return Scan(planes, vertices, faces)
-    planes = planes_from_clusters(mesh, clusters, avg_normals)
-    return Scan(planes)
+    planes, basis = planes_from_clusters(mesh, clusters, avg_normals)
+    return Scan(planes, basis)
 
 
-def pc_extraction(P):
-    """Point cloud to scan
+def velo_pc_to_scan(P, ds_rate=5, edge_len_lim=2):
+    """Velodyne point cloud to scan
 
     Parameters
     ----------
@@ -357,22 +361,57 @@ def pc_extraction(P):
 
     Returns
     -------
-    mesh : LidarMesh
-    clusters : 
-    Scan 
+    ScanRep
         Scan representing input point cloud
     
     """
     # Downsample
-    P = downsample(P, factor=2, axis=0)
+    P = adaptive_downsample(P, factor=ds_rate)
+
+    # Clean up point cloud
+    # Remove points below ground plane
+    P = P[P[:,2] > -0.25]
 
     # Create the mesh
     mesh = LidarMesh(P)
     # Prune the mesh
-    mesh.prune(edge_len_lim=10)
+    mesh.prune(edge_len_lim=edge_len_lim)
     # Cluster the mesh with graph search
     clusters, avg_normals = cluster_mesh_graph_search(mesh)
 
     # Form scan topology
-    planes, vertices, faces = scan_from_clusters(mesh, clusters, avg_normals)
-    return mesh, clusters, Scan(planes, vertices, faces)
+    # planes, vertices, faces = scan_from_clusters(mesh, clusters, avg_normals)
+    # return Scan(planes, vertices, faces)
+    planes, basis = planes_from_clusters(mesh, clusters, avg_normals)
+    return Scan(planes, basis)
+
+
+# def pc_extraction(P):
+#     """Point cloud to scan
+
+#     Parameters
+#     ----------
+#     P : np.array (n_pts x 3)
+#         Unorganized point cloud
+
+#     Returns
+#     -------
+#     mesh : LidarMesh
+#     clusters : 
+#     Scan 
+#         Scan representing input point cloud
+    
+#     """
+#     # Downsample
+#     P = downsample(P, factor=2, axis=0)
+
+#     # Create the mesh
+#     mesh = LidarMesh(P)
+#     # Prune the mesh
+#     mesh.prune(edge_len_lim=10)
+#     # Cluster the mesh with graph search
+#     clusters, avg_normals = cluster_mesh_graph_search(mesh)
+
+#     # Form scan topology
+#     planes, vertices, faces = scan_from_clusters(mesh, clusters, avg_normals)
+#     return mesh, clusters, Scan(planes, vertices, faces)

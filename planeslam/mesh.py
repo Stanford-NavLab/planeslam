@@ -7,6 +7,7 @@ This module defines the LidarMesh class and relevant utilities.
 import numpy as np
 from scipy.spatial import Delaunay
 import plotly.graph_objects as go
+import open3d as o3d
 
 import planeslam.general as general
 
@@ -131,6 +132,31 @@ class LidarMesh:
         return dict(enumerate(tri_nbr_list))
 
 
+    def neighborhood(self, tri_idx, r=1):
+        """Given a triangle T in the mesh, return the triangles in the neighborhood of T with range r (including T)
+        
+        Parameters
+        ----------
+        tri_idx : int
+            Index of triangle to query neighborhood
+        r : int
+            Size of neighborhood in number of hops
+
+        Returns
+        -------
+        list
+            List of indices of triangles in the neighborhood
+
+        """
+        neighborhood = {tri_idx}
+        for i in range(r):
+            new_tris = set()
+            for tri in neighborhood:
+                new_tris.update(self.tri_nbr_dict[tri])
+            neighborhood.update(new_tris)
+        return list(neighborhood)
+
+
     def compute_normals(self):
         """Compute surface normals for each triangle in mesh
 
@@ -146,6 +172,13 @@ class LidarMesh:
         normals = np.cross(U,V)
         normals /= np.linalg.norm(normals, axis=1)[:,None]
         return normals
+
+
+    def smooth_laplacian(self):
+        """Smooth the mesh using Laplacian filter
+        
+        """
+
 
 
     def plot_trace(self):

@@ -5,6 +5,8 @@
 import numpy as np
 import plotly.express as px
 
+from planeslam.general import normalize
+
 
 def cluster_mesh_graph_search(mesh, normal_match_thresh=0.866, min_cluster_size=20):
     """Cluster mesh with graph search
@@ -38,6 +40,7 @@ def cluster_mesh_graph_search(mesh, normal_match_thresh=0.866, min_cluster_size=
     while to_cluster:
         root = to_cluster.pop()
         cluster_normal = normals[root,:]
+        #cluster_normal = np.mean(normals[mesh.neighborhood(root, r=1),:], axis=0)
 
         cluster = [root]
         search_queue = set(mesh.tri_nbr_dict[root])
@@ -60,7 +63,7 @@ def cluster_mesh_graph_search(mesh, normal_match_thresh=0.866, min_cluster_size=
 
     avg_normals = len(clusters) * [None]
     for i, c in enumerate(clusters):
-        avg_normals[i] = np.mean(normals[c], axis=0)
+        avg_normals[i] = normalize(np.mean(normals[c], axis=0))
 
     return clusters, avg_normals
 
@@ -166,8 +169,7 @@ def plot_clusters(P, mesh, clusters):
         idxs = np.unique(mesh.DT.simplices[c,:]) 
         cluster_idxs[idxs] = i
     
-    fig = px.scatter_3d(P, x=0, y=1, z=2, color=cluster_idxs.astype(str))
-    fig.update_layout(width=1500, height=900, scene=dict(
-                    aspectmode='data'))
+    fig = px.scatter_3d(P, x=0, y=1, z=2, color=cluster_idxs.astype(str), color_discrete_sequence=px.colors.qualitative.Plotly)
+    fig.update_layout(width=1500, height=900, scene=dict(aspectmode='data', xaxis=dict(visible=False), yaxis=dict(visible=False), zaxis=dict(visible=False)))
     fig.update_traces(marker_size=2)
     return fig

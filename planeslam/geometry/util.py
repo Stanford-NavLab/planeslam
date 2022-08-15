@@ -28,8 +28,29 @@ def vector_projection(a, b):
     return np.dot(a, b_) * b_
 
 
+def orthogonal_projection(v, n):
+    """Project vector v onto plane defined by normal n
+    
+    Parameters
+    ----------
+    v : np.array (1 x 3)
+        Vector to project
+    n : np.array (3 x 1)
+        Normal vector
+
+    Returns
+    -------
+    np.array
+        Projected vector
+
+    """
+    return v - (v @ n) @ n.T
+
+
 def project_points_to_plane(P, n):
     """Project points onto the plane defined by normal vector
+
+    https://stackoverflow.com/questions/9605556/how-to-project-a-point-onto-a-plane-in-3d
 
     Parameters
     ----------
@@ -93,7 +114,7 @@ def axis_angle_to_rot_mat(axis, angle):
     """
     axis = normalize(axis).flatten()
     q = np.hstack((axis * np.sin(angle/2), np.cos(angle/2)))
-    return quat_to_rot_mat(q)
+    return quat_to_R(q)
 
 
 def quat_to_R(quat):

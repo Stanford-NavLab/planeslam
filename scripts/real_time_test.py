@@ -14,7 +14,7 @@ from planeslam.scan import pc_to_scan
 from planeslam.registration import decoupled_GN_register
 from planeslam.clustering import mesh_cluster_pts
 from planeslam.general import NED_to_ENU
-from planeslam.geometry.util import quat_to_rot_mat
+from planeslam.geometry.util import quat_to_R
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     # scan_vis.update_renderer()
 
     # Initialize initial absolute pose
-    R_abs = quat_to_rot_mat(drone_orientations[0])
+    R_abs = quat_to_R(drone_orientations[0])
     t_abs = drone_positions[0,:].copy()
 
     # Trajectory visualization

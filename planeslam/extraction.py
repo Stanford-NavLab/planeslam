@@ -3,14 +3,11 @@
 """
 
 import numpy as np
-import scipy.spatial
 
-from planeslam.general import downsample
-from planeslam.mesh import LidarMesh
-from planeslam.geometry.util import project_points_to_plane
+from planeslam.general import normalize
+from planeslam.geometry.util import project_points_to_plane, orthogonal_projection
 from planeslam.geometry.plane import BoundedPlane, merge_plane
-from planeslam.geometry.box import Box
-from planeslam.clustering import sort_mesh_clusters, mesh_cluster_pts, cluster_mesh_graph_search
+from planeslam.clustering import sort_mesh_clusters, mesh_cluster_pts
 
 
 def oriented_bd_plane_from_pts(pts, n):
@@ -90,7 +87,8 @@ def bd_plane_from_pts_basis(pts, n, basis):
     plane_pts = np.empty((4,3))
 
     # Project to basis
-    pts_proj = pts @ np.linalg.inv(basis).T
+    #pts_proj = pts @ np.linalg.inv(basis).T
+    pts_proj = pts @ basis
 
     # Use normal to determine which dimensions to extract bounding box from
     plane_idx = np.argsort(np.linalg.norm(np.hstack((basis, -basis)) - n, axis=0))[0] % 3  # account for negative basis directions
@@ -376,13 +374,18 @@ def planes_from_clusters(mesh, clusters, avg_normals):
     # Sort clusters from largest to smallest
     clusters, avg_normals = sort_mesh_clusters(clusters, avg_normals)
 
+    # Find ground plane - largest cluster with 
+    # (assumes pitch/roll is < 45 degrees)
+    normals_arr = np.asarray(avg_normals)
+    ground_normal = normals_arr[np.argmax(np.abs(normals_arr), axis=1)==2][0]
+
     # Find extraction basis based on normals
     basis = np.zeros((3,3))
-    basis[:,2] = avg_normals[0]  # choose first cluster's normal as z
-    dps = np.asarray(avg_normals) @ basis[:,2]
+    basis[:,2] = ground_normal  # choose ground plane normal as z
+    dps = normals_arr @ basis[:,2]  # dot products
     orth_idxs = np.nonzero(np.abs(dps) < 0.2)[0]  # indices of normals approximately orthonormal to z
-    basis[:,0] = avg_normals[orth_idxs[0]]  # choose the first one as x
-    basis[:,1] = np.cross(basis[:,2], basis[:,0])
+    basis[:,0] = normalize(orthogonal_projection(avg_normals[orth_idxs[0]], ground_normal[:,None]))    # choose orthonormal projection of first one as x
+    basis[:,1] = np.cross(basis[:,2], basis[:,0])  # y = cross(z, x)
 
     for i, c in enumerate(clusters):  
         n = avg_normals[i][:,None]
@@ -392,7 +395,7 @@ def planes_from_clusters(mesh, clusters, avg_normals):
         plane_pts = bd_plane_from_pts_basis(cluster_pts, n, basis)
         planes.append(BoundedPlane(plane_pts))
     
-    return planes
+    return planes, basis
 
 
 def planes_from_pcl_clusters(P, clusters, normals_arr):
@@ -429,34 +432,6 @@ def planes_from_pcl_clusters(P, clusters, normals_arr):
         planes.append(bplane)
     
     return planes
-
-
-def pc_to_planes(P):
-    """Point cloud to planes
-
-    Parameters
-    ----------
-    P : np.array (n_pts x 3)
-        Unorganized point cloud
-
-    Returns
-    -------
-    ScanRep
-        Scan representing input point cloud
-    
-    """
-    # Downsample
-    P = downsample(P, factor=5, axis=0)
-
-    # Create the mesh
-    mesh = LidarMesh(P)
-    # Prune the mesh
-    mesh.prune(10)
-    # Cluster the mesh with graph search
-    clusters, avg_normals = cluster_mesh_graph_search(mesh)
-
-    # Extract planes
-    return planes_from_clusters(mesh, clusters, avg_normals)
 
 
 def orient_normals(P, normals):

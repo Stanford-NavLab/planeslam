@@ -87,6 +87,18 @@ def adaptive_downsample(P, factor=5):
     """Downsample a point cloud based on distances
     
     Points farther away will get sampled with higher probability
+
+    Parameters
+    ----------
+    P : np.array (N x 3)
+        Point cloud to downsample
+    factor : int 
+        Factor to downsample by
+
+    Returns
+    -------
+    np.array (N/factor x 3)
+        Downsampled point cloud
     
     """
     dists = np.linalg.norm(P, axis=1)

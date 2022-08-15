@@ -298,6 +298,47 @@ def jacobian(n_s, n_q):
     return J
 
 
+def solve_translation(R, n_s, d_s, d_t):
+    """Given rotation, solve for translation using least-squares
+
+    Parameters
+    ----------
+    R : np.array (3 x 3)
+        Estimated rotation
+    n_s : np.array (3N x 1)
+        Stacked vector of source normals
+    d_s : np.array (N x 1)
+        Stacked vector of source distances
+    d_t : np.array (N x 1)
+        Stacked vector of target distances
+
+    Returns
+    -------
+    t_hat : np.array (3 x 1)
+        Estimated translation
+    
+    """
+    Rn_s = (R @ n_s.reshape((3, -1), order='F'))
+    t_hat = np.linalg.lstsq(Rn_s.T, d_t - d_s, rcond=None)[0]
+    t_res = np.abs(Rn_s.T @ t_hat - (d_t - d_s))
+    t_loss = np.linalg.norm(t_res)**2
+    print("final translation loss: ", np.linalg.norm(Rn_s.T @ t_hat - (d_t - d_s))**2)
+    print("translation residuals: ", Rn_s.T @ t_hat - (d_t - d_s))
+    return t_hat, t_res, t_loss
+
+
+def solve_rotation_SVD(n_s, n_t):
+    """
+    
+    """
+    H = np.zeros((3,3))
+    for i in range(int(len(n_s)/3)):
+        H += n_s[3*i:3*(i+1)] @ n_t[3*i:3*(i+1)].T
+    u, s, v = np.linalg.svd(H)
+    R_hat = u @ v
+    return R_hat
+
+
 def decoupled_register(source, target):
     """Register source to target scan using decoupled approach
     
@@ -321,16 +362,10 @@ def decoupled_register(source, target):
     n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
 
     # Estimate rotation
-    H = np.zeros((3,3))
-    for i in range(len(correspondences)):
-        H += n_s[3*i:3*(i+1)] @ n_t[3*i:3*(i+1)].T
-    u, s, v = np.linalg.svd(H)
-    R_hat = u @ v
+    R_hat = solve_rotation_SVD(n_s, n_t)
 
     # Estimate translation
-    A = np.reshape(n_t, (-1,3))
-    b = d_t - d_s
-    t_hat = np.linalg.lstsq(A, b, rcond=None)[0]
+    t_hat = solve_translation(R_hat, n_s, d_s, d_t)[0]
 
     return R_hat, t_hat
 
@@ -349,11 +384,7 @@ def decoupled_opt(source, target, correspondences):
     R_hat = u @ v
 
     # Estimate translation
-    A = np.reshape(n_t, (-1,3))
-    b = d_t - d_s
-    t_hat = np.linalg.lstsq(A, b, rcond=None)[0]
-    t_res = np.abs(A @ t_hat - b)
-    t_loss = np.linalg.norm(t_res)**2
+    t_hat, t_res, t_loss = solve_translation(R_hat, n_s, d_s, d_t)
 
     return R_hat, t_hat, t_loss, t_res
 
@@ -482,6 +513,26 @@ def so3_jacobian(n_q):
     return J
 
 
+def solve_rotation_GN(n_s, n_t):
+    """
+    
+    """
+    R_hat = np.eye(3)
+
+    n_iters = 5
+    lmbda = 1e-8
+    mu = 1.0
+
+    for i in range(n_iters):
+        r, n_q = so3_residual(R_hat, n_s, n_t)
+        #print("  loss: ", np.linalg.norm(r)**2)
+        J = so3_jacobian(n_q)
+        dw = - mu * np.linalg.inv(J.T @ J + lmbda*np.eye(3)) @ J.T @ r
+        R_hat = so3_expmap(dw.flatten()) @ R_hat
+    
+    return R_hat
+
+
 def decoupled_GN_register(source, target):
     """Decoupled Gauss Newton
 
@@ -508,27 +559,13 @@ def decoupled_GN_register(source, target):
     n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
 
     # Rotation estimation
-    R_hat = np.eye(3)
-
-    n_iters = 5
-    lmbda = 1e-8
-    mu = 1.0
-
-    for i in range(n_iters):
-        r, n_q = so3_residual(R_hat, n_s, n_t)
-        #print("  loss: ", np.linalg.norm(r)**2)
-        J = so3_jacobian(n_q)
-        dw = - mu * np.linalg.inv(J.T @ J + lmbda*np.eye(3)) @ J.T @ r
-        R_hat = so3_expmap(dw.flatten()) @ R_hat
+    R_hat = solve_rotation_GN(n_s, n_t)
     
     r, _ = so3_residual(R_hat, n_s, n_t)
     print("final rotation loss: ", np.linalg.norm(r)**2)
 
     # Translation estimation
-    Rn_s = (R_hat @ n_s.reshape((3, -1), order='F'))
-    t_hat = np.linalg.lstsq(Rn_s.T, d_t - d_s, rcond=None)[0]
-    print("final translation loss: ", np.linalg.norm(Rn_s.T @ t_hat - (d_t - d_s))**2)
-    print("translation residuals: ", Rn_s.T @ t_hat - (d_t - d_s))
+    t_hat = solve_translation(R_hat, n_s, d_s, d_t)
 
     return R_hat, t_hat
 
@@ -538,39 +575,21 @@ def decoupled_GN_opt(source, target, correspondences):
     
     """
     n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
-    print("n_s ", n_s)
-    print("n_t ", n_t)
 
     # Rotation estimation
-    R_hat = np.eye(3)
-
-    n_iters = 5
-    lmbda = 1e-8
-    mu = 1.0
-
-    for i in range(n_iters):
-        r, n_q = so3_residual(R_hat, n_s, n_t)
-        #print("  loss: ", np.linalg.norm(r)**2)
-        J = so3_jacobian(n_q)
-        dw = - mu * np.linalg.inv(J.T @ J + lmbda*np.eye(3)) @ J.T @ r
-        R_hat = so3_expmap(dw.flatten()) @ R_hat
+    R_hat = solve_rotation_GN(n_s, n_t)
     
     r, _ = so3_residual(R_hat, n_s, n_t)
     #print(" final rotation loss: ", np.linalg.norm(r)**2)
 
     # Translation estimation
-    Rn_s = (R_hat @ n_s.reshape((3, -1), order='F'))
-    t_hat = np.linalg.lstsq(Rn_s.T, d_t - d_s, rcond=None)[0]
-    t_res = np.abs(Rn_s.T @ t_hat - (d_t - d_s))
-    t_loss = np.linalg.norm(t_res)**2
-    #print(" final translation loss: ", t_loss)
-    # print("translation residuals: ", t_res)
+    t_hat, t_res, t_loss = solve_translation(R_hat, n_s, d_s, d_t)
 
     return R_hat, t_hat, t_loss, t_res
 
 
 def robust_GN_register(source, target):
-    """
+    """Robust (decoupled) Gauss-newton
     
     """
     # Find correspondences and extract features
@@ -589,6 +608,56 @@ def robust_GN_register(source, target):
         # Redo registration
         #print("re-running registration")
         R_hat, t_hat, t_loss, t_res = decoupled_GN_opt(source, target, correspondences)
+        num_faults += 1
+
+    return R_hat, t_hat
+
+
+def solve_rotation_basis(source, target):
+    """Solve for rotation between two scans with their bases
+    
+    """
+    return target.basis @ source.basis.T
+
+
+def decoupled_basis_opt(source, target, correspondences):
+    """
+    
+    """
+    n_s, d_s, n_t, d_t = extract_corresponding_features(source, target, correspondences)
+
+    # Rotation estimation
+    R_hat = solve_rotation_basis(source, target)
+    
+    r, _ = so3_residual(R_hat, n_s, n_t)
+    #print(" final rotation loss: ", np.linalg.norm(r)**2)
+
+    # Translation estimation
+    t_hat, t_res, t_loss = solve_translation(R_hat, n_s, d_s, d_t)
+
+    return R_hat, t_hat, t_loss, t_res
+
+
+def robust_basis_register(source, target):
+    """
+    
+    """
+    # Find correspondences and extract features
+    correspondences = get_correspondences(source, target)
+    
+    # Do registration
+    R_hat, t_hat, t_loss, t_res = decoupled_basis_opt(source, target, correspondences)
+
+    max_faults = 3
+    num_faults = 0
+
+    # Check translation loss
+    while t_loss > 1.0 and num_faults < max_faults:
+        fault = np.argmax(t_res)
+        del correspondences[fault]
+        # Redo registration
+        #print("re-running registration")
+        R_hat, t_hat, t_loss, t_res = decoupled_basis_opt(source, target, correspondences)
         num_faults += 1
 
     return R_hat, t_hat
