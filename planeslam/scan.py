@@ -248,7 +248,7 @@ class Scan:
         """
         
 
-    def remove_small_planes(self, area_thresh=1.0):
+    def remove_small_planes(self, area_thresh=0.1):
         """Remove planes with small area
         
         """
@@ -351,7 +351,7 @@ def pc_to_scan(P, ds_rate=2, edge_len_lim=10):
     return Scan(planes, basis)
 
 
-def velo_pc_to_scan(P, ds_rate=5, edge_len_lim=2):
+def velo_pc_to_scan(P, ds_rate=5, edge_len_lim=0.5):
     """Velodyne point cloud to scan
 
     Parameters
@@ -365,23 +365,13 @@ def velo_pc_to_scan(P, ds_rate=5, edge_len_lim=2):
         Scan representing input point cloud
     
     """
-    # Downsample
     P = adaptive_downsample(P, factor=ds_rate)
 
-    # Clean up point cloud
-    # Remove points below ground plane
-    P = P[P[:,2] > -0.25]
-
-    # Create the mesh
     mesh = LidarMesh(P)
-    # Prune the mesh
     mesh.prune(edge_len_lim=edge_len_lim)
-    # Cluster the mesh with graph search
-    clusters, avg_normals = cluster_mesh_graph_search(mesh)
 
-    # Form scan topology
-    # planes, vertices, faces = scan_from_clusters(mesh, clusters, avg_normals)
-    # return Scan(planes, vertices, faces)
+    mesh.smooth_laplacian()
+    clusters, avg_normals = cluster_mesh_graph_search(mesh)
     planes, basis = planes_from_clusters(mesh, clusters, avg_normals)
     return Scan(planes, basis)
 

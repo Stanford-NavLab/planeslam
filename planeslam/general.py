@@ -265,3 +265,4 @@ def plot_normals(P,normals,scale=10.):
     fig.update_layout(width=1000, height=600, scene=dict(
                     aspectmode='data'),showlegend=False)
     return fig
+

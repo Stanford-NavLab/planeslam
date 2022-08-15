@@ -174,11 +174,17 @@ class LidarMesh:
         return normals
 
 
-    def smooth_laplacian(self):
+    def smooth_laplacian(self, iterations=3):
         """Smooth the mesh using Laplacian filter
         
         """
+        # Create open3d mesh
+        o3d_mesh = o3d.geometry.TriangleMesh()
+        o3d_mesh.vertices = o3d.utility.Vector3dVector(self.P)
+        o3d_mesh.triangles = o3d.utility.Vector3iVector(self.DT.simplices)
 
+        smoothed_mesh = o3d_mesh.filter_smooth_laplacian(number_of_iterations=iterations)
+        self.P = np.asarray(smoothed_mesh.vertices)
 
 
     def plot_trace(self):
