@@ -6,6 +6,7 @@ Functions for plane-based registration.
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
+from copy import deepcopy
 
 from planeslam.geometry.plane import plane_to_plane_dist
 from planeslam.geometry.util import skew
@@ -601,7 +602,6 @@ def robust_GN_register(source, target, t_loss_thresh=1.0, max_faults=3):
     # Do registration
     R_hat, t_hat, t_loss, t_res = decoupled_GN_opt(source, target, correspondences)
 
-    max_faults = max_faults
     num_faults = 0
 
     # Check translation loss
@@ -672,3 +672,44 @@ def iterative_register(source, target):
     
     """
     
+
+def loop_closure_register(source, target, source_pose, target_pose, t_loss_thresh=1.0, max_faults=3):
+    """Register two scans for loop closure
+
+    Use initial poses to get correspondences
+
+    Parameters
+    ----------
+    source : Scan
+        Source scan
+    target : Scan
+        Target scan
+    source_pose : tuple
+        Tuple (R,t) of source pose
+    target_pose : tuple
+        Tuple (R,t) of source pose
+
+    """
+    source_transformed = deepcopy(source)
+    source_transformed.transform(source_pose[0], source_pose[1])
+    target_transformed = deepcopy(target)
+    target_transformed.transform(target_pose[0], target_pose[1])
+
+    correspondences = get_correspondences(source_transformed, target_transformed)
+
+    # Do registration
+    R_hat, t_hat, t_loss, t_res = decoupled_GN_opt(source, target, correspondences)
+
+    num_faults = 0
+
+    # Check translation loss
+    while t_loss > t_loss_thresh and num_faults < max_faults:
+        fault = np.argmax(t_res)
+        print("deleting ", correspondences[fault])
+        del correspondences[fault]
+        # Redo registration
+        #print("re-running registration")
+        R_hat, t_hat, t_loss, t_res = decoupled_GN_opt(source, target, correspondences)
+        num_faults += 1
+
+    return R_hat, t_hat
