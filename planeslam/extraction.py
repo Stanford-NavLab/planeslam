@@ -65,6 +65,13 @@ def oriented_bd_plane_from_pts(pts, n):
     return project_points_to_plane(plane_pts, n)
 
 
+def remove_plane_outliers(pts, n):
+    """
+    
+    """
+
+
+
 def bd_plane_from_pts_basis(pts, n, basis):
     """Extract bounding rectangular plane from set of 3D points
 
@@ -99,31 +106,40 @@ def bd_plane_from_pts_basis(pts, n, basis):
 
     # Find 2D bounding box of points within plane
     #plane_pts[:,plane_idx] = pts_proj[0,plane_idx]
-    plane_pts[:,plane_idx] = np.median(pts_proj[:,plane_idx])  # Coordinate in plane is constant
-    min = np.amin(pts_proj[:,axes], axis=0)
-    max = np.amax(pts_proj[:,axes], axis=0)
+    plane_z = np.median(pts_proj[:,plane_idx])  # Coordinate in plane is constant
+    plane_pts[:,plane_idx] = plane_z  
 
-    n_proj = np.linalg.inv(basis) @ n
-    
-    for i, ax in enumerate(axes):
-        if i == 0:  # First coordinate
-            if n_proj[plane_idx] > 0:  # Positively oriented normal
-                if plane_idx == 0 or plane_idx == 2:  # x or z normal
-                    plane_pts[:,ax] = np.array([min[i], max[i], max[i], min[i]])  # Case 1
-                else: # y normal
-                    plane_pts[:,ax] = np.array([max[i], min[i], min[i], max[i]])  # Case 2
-            else:  # Negatively oriented normal
-                if plane_idx == 0 or plane_idx == 2:  # x or z normal
-                    plane_pts[:,ax] = np.array([max[i], min[i], min[i], max[i]])  # Case 2
-                else: # y normal
-                    plane_pts[:,ax] = np.array([min[i], max[i], max[i], min[i]])  # Case 1
-        else:  # Second coordinate
-            plane_pts[:,ax] = np.array([min[i], min[i], max[i], max[i]])  # Case 3
+    # Remove outliers in plane z
+    pts_proj = pts_proj[np.abs(pts_proj[:,plane_idx] - plane_z) < 0.1]
+    min_plane_pts = 10
+    # TODO: remove outliers in plane x/y
+    if len(pts_proj) > min_plane_pts:
+        min = np.amin(pts_proj[:,axes], axis=0)
+        max = np.amax(pts_proj[:,axes], axis=0)
 
-    # Project back to standard basis
-    plane_pts = plane_pts @ basis.T
+        n_proj = np.linalg.inv(basis) @ n
+        
+        for i, ax in enumerate(axes):
+            if i == 0:  # First coordinate
+                if n_proj[plane_idx] > 0:  # Positively oriented normal
+                    if plane_idx == 0 or plane_idx == 2:  # x or z normal
+                        plane_pts[:,ax] = np.array([min[i], max[i], max[i], min[i]])  # Case 1
+                    else: # y normal
+                        plane_pts[:,ax] = np.array([max[i], min[i], min[i], max[i]])  # Case 2
+                else:  # Negatively oriented normal
+                    if plane_idx == 0 or plane_idx == 2:  # x or z normal
+                        plane_pts[:,ax] = np.array([max[i], min[i], min[i], max[i]])  # Case 2
+                    else: # y normal
+                        plane_pts[:,ax] = np.array([min[i], max[i], max[i], min[i]])  # Case 1
+            else:  # Second coordinate
+                plane_pts[:,ax] = np.array([min[i], min[i], max[i], max[i]])  # Case 3
 
-    return plane_pts
+        # Project back to standard basis
+        plane_pts = plane_pts @ basis.T
+
+        return plane_pts
+    else:
+        return None
 
 
 def bd_plane_from_pts(pts, n):
@@ -393,7 +409,8 @@ def planes_from_clusters(mesh, clusters, avg_normals):
 
         # Extract bounding plane
         plane_pts = bd_plane_from_pts_basis(cluster_pts, n, basis)
-        planes.append(BoundedPlane(plane_pts))
+        if plane_pts is not None:
+            planes.append(BoundedPlane(plane_pts))
     
     return planes, basis
 

@@ -48,7 +48,7 @@ class BoundedPlane:
         # Check side lengths
         S = np.diff(vertices, axis=0, append=vertices[0][None,:])  # Side vectors
         assert np.all(np.isclose(S[0], -S[2])) and np.all(np.isclose(S[1], -S[3])), \
-            "Side lengths from vertices given to BoundedPlane constructor are not equal"
+            "Side lengths from vertices given to BoundedPlane constructor are not equal "
 
         # Form the basis vectors
         basis_x = normalize(S[0])  # x is v2 - v1 
