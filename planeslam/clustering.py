@@ -52,10 +52,9 @@ def cluster_mesh_graph_search(mesh, normal_match_thresh=0.866, min_cluster_size=
                 # Add node to cluster and remove from to_cluster
                 cluster.append(i)
                 to_cluster.remove(i)
-                # Add its neighbors (that are not already clustered or search queue) to the search queue
+                # Add its neighbors (that are not already clustered) to the search queue
                 search_nbrs = mesh.tri_nbr_dict[i].copy()
                 search_nbrs = [x for x in search_nbrs if x in to_cluster]
-                search_nbrs = [x for x in search_nbrs if not x in search_queue]
                 search_queue.update(search_nbrs)
 
         if len(cluster) >= min_cluster_size:
