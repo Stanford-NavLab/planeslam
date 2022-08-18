@@ -223,7 +223,8 @@ class Scan:
             if i in keep:
                 p_proj = (np.linalg.inv(p.basis) @ p.vertices.T).T
                 #p_rect = Rectangle(p_proj[:,0:2])
-                p_box = Box(p_proj[0,:2], p_proj[2,:2])
+                #p_box = Box(p_proj[0,:2], p_proj[2,:2])
+                p_box = box_from_pts(p_proj[:,:2])
                 to_remove = set()
                 for j in keep:
                     if j == i:
@@ -232,7 +233,8 @@ class Scan:
                     if np.dot(p.normal.T, q.normal) > 0.866:
                         q_proj = (np.linalg.inv(p.basis) @ q.vertices.T).T
                         #q_rect = Rectangle(q_proj[:,0:2])
-                        q_box = Box(q_proj[0,:2], q_proj[2,:2])
+                        #q_box = Box(q_proj[0,:2], q_proj[2,:2])
+                        q_box = box_from_pts(q_proj[:,:2])
                         intersection = p_box.intersect(q_box)
                         if intersection is not None and (intersection.area() / q_box.area() > 0.9):
                         #if p_rect.contains(q_rect):
