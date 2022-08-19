@@ -1,6 +1,6 @@
-"""SimplePlanner class
+"""ReachPlanner class
 
-This module defines the SimplePlanner class.
+This module defines the ReachPlanner class.
 
 """
 
@@ -12,15 +12,10 @@ from planeslam.planning.LPM import LPM
 import planeslam.planning.utils as utils
 
 
-class SimplePlanner:
-    """Simple Planner class
+class ReachPlanner:
+    """RTD Planner class
 
-    Simple Trajectory planner which recomputes collision-free trajectories to follow 
-    in a receding-horizon fashion given a map of the surroundings represented as a Scan
-    (produced by the Plane SLAM)
-
-    Trajectory: time-indexed positions, velocities, accelerations
-    Plan: trajectory and associated reachable set(s)
+    Simple reachability-based trajectory planner.
 
     Attributes
     ----------

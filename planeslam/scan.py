@@ -87,7 +87,7 @@ class Scan:
         # self.center += t[:,None]
     
 
-    def plot_trace(self, show_normals=False, normal_scale=5):
+    def plot_trace(self, show_normals=False, normal_scale=5, colors=None):
         """Generate plotly plot trace
 
         TODO: sometimes plane mesh is not plotted properly, may be due to ordering of vertices
@@ -99,7 +99,8 @@ class Scan:
 
         """
         data = []
-        colors = px.colors.qualitative.Plotly
+        if colors is None:
+            colors = px.colors.qualitative.Plotly
         for i, p in enumerate(self.planes):
             data += p.plot_trace(name=str(i), color=colors[i%len(colors)])
 

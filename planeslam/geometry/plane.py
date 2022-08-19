@@ -10,7 +10,8 @@ import plotly.graph_objects as go
 
 from planeslam.general import normalize
 from planeslam.geometry.util import vector_projection
-from planeslam.geometry.box import Box
+from planeslam.geometry.box import Box, box_from_pts
+from planeslam.planning.zonotope import Zonotope
 
 
 class BoundedPlane:
@@ -132,6 +133,76 @@ class BoundedPlane:
         # Form 2D box from projection
         p_box = Box(p_proj[0,0:2], p_proj[2,0:2])
         return p_box.area()
+
+
+    def to_zonotope(self):
+        """Convert this plane to zonotope representation
+        
+        Returns
+        -------
+        Zonotope
+            Zonotope representation of plane
+
+        """
+        c = self.center[:,None]
+        G = np.diff(self.vertices[:3], axis=0).T / 2
+        return Zonotope(c, G)
+    
+
+    def dist_to_point(self, x):
+        """Compute shortest distance from plane to 3D point
+
+        Distance is positive if in the direction of the plane normal, negative
+        if in the opposite direction.
+        
+        Parameters
+        ----------
+        x : np.array (3)
+            Point to get distance to
+
+        Returns
+        -------
+        float
+            Point to plane distance
+
+        """
+        return -self.normal.T @ (self.center - x)
+
+
+    def check_line_intersect(self, line):
+        """Check if line segment intersects plane
+        
+        Parameters
+        ----------
+        line : np.array (2 x 3)
+            Line segment defined by two points
+        
+        Returns
+        -------
+        bool
+            True if intersecting, False otherwise
+        
+        """
+        # Project to plane basis
+        plane_proj = self.vertices @ self.basis
+        plane_proj_z = plane_proj[0,2]
+        line_proj = line @ self.basis
+
+        # Find intersection point of infinite line with infinite plane
+        # by setting z for line (since z is constant for projected plane)
+        line_x0 = line_proj[0,:]
+        line_v = line_proj[1,:] - line_proj[0,:]
+
+        if line_v[2] == 0:
+            return False
+        else:
+            c = (plane_proj_z - line_x0[2]) / line_v[2]
+            intersection_pt = line_x0 + c * line_v
+
+            # Check if intersection point lies within line segment and within plane boundaries
+            in_line = c < 1 and c > 0
+            in_plane = box_from_pts(plane_proj[:,:2]).contains(intersection_pt[:2])
+            return in_line and in_plane
     
 
     def plot(self, ax=None, color='b', show_normal=False):
@@ -290,6 +361,7 @@ def order_plane_verts(V, n):
         Ordered plane vertices
 
     """
+    # TODO: unfinished
     # Check if current ordering has normal in right direction
 
     # If not, swap ordering

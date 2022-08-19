@@ -172,3 +172,34 @@ def skew(v):
                      [v[2], 0, -v[0]],
                      [-v[1], v[0], 0]])
 
+
+def line_plane_intersection(plane, line):
+    """Compute the intersection of an infinite line with infinite plane
+
+    Parameters
+    ----------
+    plane : tuple (n, d)
+        Plane parameterized by normal vector n and distance to origin d
+    line : tuple (x0, v)
+        Line parameterized by point x0 and vector v
+
+    Returns
+    -------
+    None if no intersection (line and plane are parallel)
+        or
+    (intersection_pt, c)
+    
+    """
+    n = plane[0]; d = plane[1]
+    x0 = line[0]; v = line[1]
+
+    n_dot_v = np.dot(n, v)
+
+    if n_dot_v == 0:
+        print("not intersecting")
+        return None
+    else:
+        c = (d - np.dot(n, x0)) / n_dot_v
+        intersection_pt = x0 + c * v
+        return (intersection_pt, c)
+

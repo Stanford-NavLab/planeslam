@@ -67,6 +67,23 @@ class Box:
                          self.max,
                         [self.min[0], self.max[1]]])
 
+
+    def contains(self, x):
+        """Check if box contains point x
+        
+        Parameters
+        ----------
+        x : np.array (2)
+            2D point
+
+        Returns
+        -------
+        bool
+            True is contains x, False otherwise
+        
+        """
+        return np.all(x > self.min) and np.all(x < self.max)
+
     
     def area(self):
         """Area of box

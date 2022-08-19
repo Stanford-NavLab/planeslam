@@ -1,8 +1,12 @@
+"""Utilities for trajectory planning
+
+"""
+
 import numpy as np
 import time
 
-from multirtd.LPM import LPM
-import multirtd.params as params
+from planeslam.planning.zonotope import is_empty_con_zonotope
+
 
 class Trajectory:
     """Trajectory class
@@ -36,29 +40,45 @@ class Trajectory:
         self.A = np.zeros((N_dim, self.length))
 
 
+def collision_check(Z1, Z2):
+    """Check if two zonotopes collide (i.e. their intersection is nonempty)
 
-def check_obs_collision(positions, obs, r_collision):
-    """Check a sequence of positions against a single obstacle for collision.
-
-    Obstacles are cylinders represented as (center, radius)
-
-    Parameters
-    ----------
-    positions : np.array
-    obs : tuple
+    Method 1: find intersection as constrained zonotope, then check if that is empty
+    Method 2: compute minkowski sum of Z1 and Z2 shifted to 0, and check if center of Z2 is contained inside
 
     Returns
     -------
     bool
-        True if the plan is safe, False is there is a collision
-
+        True if zonotopes intersect, False otherwise.
+    
     """
-    c_obs, r_obs = obs
-    d_vec = np.linalg.norm(positions - c_obs[:,None], axis=0)
-    if any(d_vec <= r_collision + r_obs):
-        return False
-    else:
-        return True
+    start_time = time.time()
+    conZ_A = np.hstack((Z1.G, -Z2.G))
+    conZ_b = Z2.c - Z1.c
+
+    return not is_empty_con_zonotope(conZ_A, conZ_b)
+
+
+def check_box_plane_intersect(box, plane):
+    """Check if box intersects plane
+    
+    Parameters
+    ----------
+    box : Box3D
+        Box to check intersection
+    plane : BoundedPlane
+        Plane to check intersection
+
+    Returns
+    -------
+    bool
+        True if intersecting, False otherwise
+    
+    """
+    for e in box.edges():
+        if plane.check_line_intersect(e):
+            return True
+    return False
 
 
 def rand_in_bounds(bounds, n):
