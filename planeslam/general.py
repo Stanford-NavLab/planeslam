@@ -165,7 +165,7 @@ def color_legend(ax, num_colors):
     ax.legend()
 
 
-def pc_plot_trace(P):
+def pc_plot_trace(P, color=None):
     """Generate plotly plot trace for point cloud
 
     Parameters
@@ -180,7 +180,7 @@ def pc_plot_trace(P):
 
     """
     return go.Scatter3d(x=P[:,0], y=P[:,1], z=P[:,2], 
-        mode='markers', marker=dict(size=2))
+        mode='markers', marker=dict(size=2, color=color))
 
 
 def pose_plot_trace(R, t):
