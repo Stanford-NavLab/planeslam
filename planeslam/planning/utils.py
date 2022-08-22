@@ -52,7 +52,6 @@ def collision_check(Z1, Z2):
         True if zonotopes intersect, False otherwise.
     
     """
-    start_time = time.time()
     conZ_A = np.hstack((Z1.G, -Z2.G))
     conZ_b = Z2.c - Z1.c
 

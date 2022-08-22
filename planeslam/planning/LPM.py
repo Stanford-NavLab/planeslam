@@ -62,7 +62,7 @@ class LPM:
         Parameters
         ----------
         k : np.array
-            trajectory parameter k = (v_0, a_0, v_peak), n x 3 where n is workspace dimension
+            trajectory parameter k = [v_0, a_0, v_peak], n x 3 where n is workspace dimension
         
         Returns
         -------

@@ -7,7 +7,7 @@ import numpy as np
 from planeslam.geometry.util import quat_to_R
 
 
-def velo_preprocess(PC, pose):
+def velo_preprocess(PC, pose, x_lim=4.0, y_lim=2.5):
     """Pre-process velodyne point cloud
     
     """
@@ -20,8 +20,8 @@ def velo_preprocess(PC, pose):
     PC = PC[PC[:,2] > -0.1]
 
     # Remove points outside of x/y room bounds
-    X_BOUNDS = [-7, 7]
-    Y_BOUNDS = [-3, 3]
+    X_BOUNDS = [-x_lim, x_lim]
+    Y_BOUNDS = [-y_lim, y_lim]
     PC = PC[np.bitwise_and(PC[:,0] > X_BOUNDS[0], PC[:,0] < X_BOUNDS[1])]
     PC = PC[np.bitwise_and(PC[:,1] > Y_BOUNDS[0], PC[:,1] < Y_BOUNDS[1])]
 

@@ -10,6 +10,8 @@ import time
 import planeslam.planning.params as params
 from planeslam.planning.LPM import LPM
 import planeslam.planning.utils as utils
+from planeslam.planning.zonotope import Zonotope
+from planeslam.planning.reachability import compute_PRS, generate_collision_constraints, check_collision_constraints
 
 
 class ReachPlanner:
@@ -36,8 +38,8 @@ class ReachPlanner:
             Initial position
         map : Scan
             Current map of environment
-        r_body : Box3D
-            Robot body (centered at 0)
+        r_body : Zonotope
+            Zonotope representing robot body (centered at 0)
 
         """
         # Initialize LPM object
@@ -57,82 +59,101 @@ class ReachPlanner:
         # Goal position [m]
         self.p_goal = np.zeros((params.N_DIM,1))
 
-        # Map (current merged scan)
-        self.map = map
+        # TODO: Store plane-based map and zonotope map
+        self.zono_map = None
+        self.update_map(map)
 
         # Robot body (represented as zonotope)
         self.r_body = r_body
 
 
-    def check_plane_collision(self, positions, plane):
-        """Check a sequence of positions against a single plane for collision.
-
+    def update_map(self, map):
+        """Convert Scan map representation to list of zonotope obstacles and store.
+        
         Parameters
         ----------
-        positions : np.array (N_DIM x TRAJ_LEN)
-            Sequence of positions (trajectory).
-        plane : BoundedPlane
-            Plane to check collision against.
-
-        Returns
-        -------
-        bool
-            True if there is a collision, False if not.
+        map : Scan
+            New map
 
         """
-        # TODO: vectorize this (both in speed and memory)
-        # for i in range(self.N_T_PLAN):
-        #     pos = positions[:,i]
-
-        #     #start_time = time.time()
-        #     #check = utils.collision_check(self.r_body + pos[:,None], plane.to_zonotope())
-        #     #print(" check box plane time: ", time.time() - start_time)
-
-        #     start_time = time.time()
-        #     check = utils.check_box_plane_intersect(self.r_body.translate(pos), plane)
-        #     #print(" check box plane time: ", time.time() - start_time)
-        #     if check:
-        #         return True
-        # return False
-
-        # TODO: try check line segments of trajectory with plane (don't consider robot volume)
-        for i in range(self.N_T_PLAN-1):
-            line_seg = positions[:,i:i+2].T
-
-            check = plane.check_line_intersect(line_seg)
-            #print(" check box plane time: ", time.time() - start_time)
-            if check:
-                return True
-        return False
+        self.zono_map = []
+        for plane in map.planes: 
+            c = plane.center[:,None]
+            G = np.diff(plane.vertices[:3], axis=0).T / 2
+            self.zono_map.append(Zonotope(c, G))
 
 
-    def check_map_collisions(self, positions):
-        """Check a sequence of positions against the current map for collision.
+    # def check_plane_collision(self, positions, plane):
+    #     """Check a sequence of positions against a single plane for collision.
 
-        Parameters
-        ----------
-        positions : np.array (N_DIM x TRAJ_LEN)
-            Trajectory positions to check against obstacles.
+    #     Parameters
+    #     ----------
+    #     positions : np.array (N_DIM x TRAJ_LEN)
+    #         Sequence of positions (trajectory).
+    #     plane : BoundedPlane
+    #         Plane to check collision against.
 
-        Returns
-        -------
-        bool
-            True if there is a collision, False if not.
+    #     Returns
+    #     -------
+    #     bool
+    #         True if there is a collision, False if not.
 
-        """
-        for plane in self.map.planes:
-            # Only check planes within certain distance of initial position
-            if plane.dist_to_point(self.p_0.flatten()) < params.COLLISION_CHECK_RADIUS:
-                if self.check_plane_collision(positions, plane):
-                    return True
-        return False
+    #     """
+    #     # TODO: vectorize this (both in speed and memory)
+    #     # for i in range(self.N_T_PLAN):
+    #     #     pos = positions[:,i]
+
+    #     #     #start_time = time.time()
+    #     #     #check = utils.collision_check(self.r_body + pos[:,None], plane.to_zonotope())
+    #     #     #print(" check box plane time: ", time.time() - start_time)
+
+    #     #     start_time = time.time()
+    #     #     check = utils.check_box_plane_intersect(self.r_body.translate(pos), plane)
+    #     #     #print(" check box plane time: ", time.time() - start_time)
+    #     #     if check:
+    #     #         return True
+    #     # return False
+
+    #     # TODO: try check line segments of trajectory with plane (don't consider robot volume)
+    #     for i in range(self.N_T_PLAN-1):
+    #         line_seg = positions[:,i:i+2].T
+
+    #         check = plane.check_line_intersect(line_seg)
+    #         #print(" check box plane time: ", time.time() - start_time)
+    #         if check:
+    #             return True
+    #     return False
+
+
+    # def check_map_collisions(self, positions):
+    #     """Check a sequence of positions against the current map for collision.
+
+    #     Parameters
+    #     ----------
+    #     positions : np.array (N_DIM x TRAJ_LEN)
+    #         Trajectory positions to check against obstacles.
+
+    #     Returns
+    #     -------
+    #     bool
+    #         True if there is a collision, False if not.
+
+    #     """
+    #     for plane in self.map.planes:
+    #         # Only check planes within certain distance of initial position
+    #         if plane.dist_to_point(self.p_0.flatten()) < params.COLLISION_CHECK_RADIUS:
+    #             if self.check_plane_collision(positions, plane):
+    #                 return True
+    #     return False
 
 
     def traj_opt(self, t_start_plan):
-        """Trajectory Optimization
+        """Trajectory optimization (using sampling)
 
         Attempt to find a collision-free plan (v_peak) which brings the agent 
         closest to its goal.
+
+        Sampling-based method.
 
         Parameters
         ----------
@@ -145,6 +166,12 @@ class ReachPlanner:
             Optimal v_peak or None if failed to find one
         
         """
+        # TODO: compute_PRS
+        # Compute FRS from initial conditions
+        FRS = compute_PRS(self.LPM, self.p_0, self.v_0, self.a_0)
+
+        # TODO: generation_collision_constraints
+        A_con, b_con = generate_collision_constraints(FRS, self.zono_map)
 
         # Generate potential v_peak samples
         V_peak = utils.rand_in_bounds(params.V_BOUNDS, params.N_PLAN_MAX)
@@ -164,15 +191,19 @@ class ReachPlanner:
         
             # Get candidate trajectory positions for current v_peak
             v_peak = V_peak[:,i][:,None]
-            k = np.hstack((self.v_0, self.a_0, v_peak))
-            cand_traj = self.LPM.compute_positions(k) + self.p_0
+            # k = np.hstack((self.v_0, self.a_0, v_peak))
+            # cand_traj = self.LPM.compute_positions(k) + self.p_0
+
+            # TODO: slice FRS by v_peak
 
             # Check against obstacles
-            start_time = time.time()
-            check_collision = self.check_map_collisions(cand_traj)
+            # start_time = time.time()
+            # check_collision = self.check_map_collisions(cand_traj)
             #print("check map collision time: ", time.time() - start_time)
+            # TODO: update check collisions
+            check_collision = check_collision_constraints(A_con, b_con, v_peak)
 
-            if not check_collision:
+            if check_collision:
                 #print("v_peak: ", v_peak, " idx = ", i)
                 return v_peak
 
@@ -182,6 +213,14 @@ class ReachPlanner:
 
         # No v_peaks are feasible (or we ran out of time)
         return None
+
+
+    # TODO: 
+    def traj_opt_solver(self):
+        """Trajectory optimization using solver
+        
+        
+        """
 
 
     def replan(self, initial_conditions):

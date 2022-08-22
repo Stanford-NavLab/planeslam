@@ -8,6 +8,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 from scipy.optimize import linprog
+import itertools
+
+from planeslam.general import remove_zero_columns
 
 
 class Zonotope(object):
@@ -47,7 +50,7 @@ class Zonotope(object):
         self.G = generators
         self.Z = np.hstack((center, generators))
         self.dim = center.shape[0]
-        self.order = generators.shape[1]
+        self.n_gen = generators.shape[1]
 
 
     ### ====== Printing ====== ###
@@ -144,6 +147,24 @@ class Zonotope(object):
         G = np.vstack((self.G, Z.G))
         return Zonotope(c,G)
 
+
+    def index(self, dim):
+        """Return sub-zonotope in dimensions dim
+        
+        Parameters
+        ----------
+        dim : list of int
+            Dimensions to index zonotope in
+
+        Returns
+        -------
+        Zonotope
+            Indexed zonotope
+
+        """
+        Z_ind = self.Z[dim]
+        return Zonotope(Z_ind[:,0][:,None], Z_ind[:,1:])
+
     
     def slice(self, dim, slice_pt):
         """Slice zonotope along dim 
@@ -165,7 +186,9 @@ class Zonotope(object):
 
 
     def halfspace(self):
-        """Generate halfspace representation
+        """Generate halfspace representation A*x <= b
+
+        Supports dim <= 3 (i.e. 1,2,3). Intended for full rank zonotopes (rank(G) >= n).
         
         Returns
         -------
@@ -173,10 +196,59 @@ class Zonotope(object):
         b : np.array ()
 
         """
+        # Extract variables
+        c = self.c
+        G = self.G
+        n = self.dim
+        m = self.n_gen
+
+        assert n <= 3, "Dimension not supported."   
+        assert np.linalg.matrix_rank(G) >= n, "Generator matrix is not full rank."
+
+        if n > 1:
+            # Build C matrices
+            if n == 2:
+                C = G
+                C = np.vstack((-C[1,:], C[0,:]))  # get perpendicular vector
+            elif n == 3:
+                comb = np.asarray(list(itertools.combinations(np.arange(m), n-1)))
+                # Cross-product in matrix form
+                Q = np.vstack((G[:,comb[:,0]], G[:,comb[:,1]]))
+                C = np.vstack((Q[1,:] * Q[5,:] - Q[2,:] * Q[4,:],
+                             -(Q[0,:] * Q[5,:] - Q[2,:] * Q[3,:]),
+                               Q[0,:] * Q[4,:] - Q[1,:] * Q[3,:]))
+            # TODO: remove nans
+        else:
+            C = G
+        
+        # Normalize normal vectors
+        C = np.divide(C, np.linalg.norm(C, axis=0)).T
+        # Build d vector
+        deltaD = np.sum(np.abs(C @ G).T, axis=0)[:,None]
+        # Compute dPos, dNeg
+        d = C @ c
+
+        A = np.vstack((C, -C))
+        b = np.vstack((d + deltaD, -d + deltaD))
+        return A, b
+
+
+    def plane_halfspace(self):
+        """Convert the halfspace representation of a plane zonotope
+        
+        """
+        # Extract variables
+        c = self.c
+        G = self.G
+        n = self.dim
+        m = self.n_gen
 
 
     def contains(self, x):
         """Check if point x is contained in zonotope.
+
+        Method 1: convert to halfspace
+        Method 2: solve for coefficients (minimization)
         
         Parameters
         ----------
@@ -189,7 +261,15 @@ class Zonotope(object):
             True if x in zonotope, False if not.
 
         """
-        # TODO: finish implementation
+        A, b = self.halfspace()
+        return np.all(A @ x <= b)
+
+
+    def delete_zeros(self):
+        """Remove all zeros generators
+        
+        """
+        self.G = remove_zero_columns(self.G)
 
 
 
@@ -210,7 +290,7 @@ class Zonotope(object):
         c = self.c
         G = self.G
         n = self.dim
-        m = self.order
+        m = self.n_gen
 
         if n == 1:
             # Compute the two vertices for 1-dimensional case
@@ -252,11 +332,10 @@ class Zonotope(object):
             #TODO: delete aligned and all-zero generators
 
             # Check if zonotope is full-dimensional
-            if self.order < n:
+            if self.n_gen < n:
                 #TODO: verticesIterateSVG
-                print("Vertices for non full-dimensional zonotope not implemented yet - returning empty array")
-                V = np.empty()
-                return V
+                print("Vertices for non full-dimensional zonotope not implemented yet - returning None")
+                return None
             
             # Generate vertices for a unit parallelotope
             vert = np.array(np.meshgrid([1, -1], [1, -1], [1, -1])).reshape(3,-1)
