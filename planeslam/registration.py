@@ -326,7 +326,7 @@ def solve_translation(R, n_s, d_s, d_t):
     t_hat = np.linalg.lstsq(Rn_s.T, d_t - d_s, rcond=None)[0]
     t_res = np.abs(Rn_s.T @ t_hat - (d_t - d_s))
     t_loss = np.linalg.norm(t_res)**2
-    print("final translation loss: ", np.linalg.norm(Rn_s.T @ t_hat - (d_t - d_s))**2)
+    #print("final translation loss: ", np.linalg.norm(Rn_s.T @ t_hat - (d_t - d_s))**2)
     #print("translation residuals: ", Rn_s.T @ t_hat - (d_t - d_s))
     return t_hat, t_res, t_loss
 
@@ -668,7 +668,12 @@ def robust_basis_register(source, target):
 
 
 def iterative_register(source, target):
-    """
+    """Iterative register
+
+    Perform multiple iterations of 
+        1. find correspondences
+        2. optimize
+        3. transform planes
     
     """
     
