@@ -243,7 +243,7 @@ class Scan:
                                 #print(f'{i} contains {j}')
                                 to_remove.add(j)
 
-            keep.difference_update(to_remove)
+                keep.difference_update(to_remove)
         
         keep = list(keep)
         self.planes = [self.planes[i] for i in keep]
@@ -280,23 +280,9 @@ class Scan:
         """Fuse edges
         
         """
-        # # Get list of all edges
-        # E = []
-        # for p in self.planes:
-        #     E += p.edges()
-        
-        # # Edge distance metric
-        # def edge_dist(e1, e2):
-        #     return min(np.linalg.norm(e1[0] - e2[0]) + np.linalg.norm(e1[1] - e2[1]),
-        #         np.linalg.norm(e1[1] - e2[0]) + np.linalg.norm(e1[0] - e2[1]))
+        # TODO: switch to extend both planes to find intersection rather than shifting one plane
 
-        # num_edges = len(E)
-        # DM = np.zeros((num_edges,num_edges))  # distance matrix
-        # for i in range(num_edges):
-        #     for j in range(num_edges):
-        #         DM[i,j] = edge_dist(E[i], E[j])
-
-        # NOTE: might want to resort planes by size after each merge
+        # NOTE: might want to re-sort planes by size after each merge
         # Use vertices of first plane as initial anchors
         vertices = list(self.planes[0].vertices)
         update_idxs = []
@@ -317,14 +303,15 @@ class Scan:
                     merge_mask[best_match] = True
 
             # If shared, adjust plane accordingly
-            if sum(merge_mask) == 2:
+            if sum(merge_mask) == 2:  
                 anchor_idxs = new_face[new_face!=-1]
                 anchor_verts = np.asarray(vertices)[anchor_idxs]
                 new_plane = merge_plane(merge_mask, anchor_verts, plane_pts, p.normal)
 
-                vertices += list(new_plane[~merge_mask,:])
-                update_idxs.append(i+1)
-                update_planes.append(BoundedPlane(new_plane))
+                if new_plane is not None:  # merge was successful (i.e. mask is valid)
+                    vertices += list(new_plane[~merge_mask,:])
+                    update_idxs.append(i+1)
+                    update_planes.append(BoundedPlane(new_plane))
             else:
                 vertices += list(plane_pts)
 

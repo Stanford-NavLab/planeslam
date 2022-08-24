@@ -203,7 +203,7 @@ class Zonotope(object):
         m = self.n_gen
 
         assert n <= 3, "Dimension not supported."   
-        assert np.linalg.matrix_rank(G) >= n, "Generator matrix is not full rank."
+        assert np.linalg.matrix_rank(G) >= n, "Generator matrix is not full rank." + str(G)
 
         if n > 1:
             # Build C matrices

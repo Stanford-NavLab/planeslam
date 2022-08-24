@@ -13,51 +13,6 @@ from planeslam.geometry.util import skew
 from planeslam.geometry.rectangle import Rectangle
 
 
-# def get_correspondences(source, target, norm_thresh=0.3, dist_thresh=5.0):
-#     """Get correspondences between two scans
-
-#     Parameters
-#     ----------
-#     source : Scan
-#         Source scan
-#     target : Scan
-#         target scan
-#     norm_thresh : float 
-#         Correspodence threshold for comparing normal vectors
-#     dist_thesh : float
-#         Correspondence threshold for plane to plane distance
-
-#     Returns
-#     -------
-#     correspondences : list of tuples
-#         List of correspondence tuples
-        
-#     """
-#     P = source.planes
-#     Q = target.planes
-#     correspondences = []
-
-#     for i, p in enumerate(P):
-#         # Compute projection of p onto it's own basis
-#         p_proj = (np.linalg.inv(p.basis) @ p.vertices.T).T
-#         p_rect = Rectangle(p_proj[:,0:2])
-
-#         for j, q in enumerate(Q):
-#             # Check if 2 planes are approximately coplanar
-#             if np.linalg.norm(p.normal - q.normal) < norm_thresh:
-#                 # Check plane to plane distance    
-#                 if plane_to_plane_dist(p, q) < dist_thresh:
-#                     # Project q onto p's basis
-#                     q_proj = (np.linalg.inv(p.basis) @ q.vertices.T).T
-#                     # Check overlap
-#                     q_rect = Rectangle(q_proj[:,0:2])
-#                     if p_rect.is_intersecting(q_rect):    
-#                         # Add the correspondence
-#                         correspondences.append((i,j))
-        
-#     return correspondences
-
-
 def get_correspondences(source, target):
     """Get correspondences between two scans
 
@@ -326,8 +281,8 @@ def solve_translation(R, n_s, d_s, d_t):
     t_hat = np.linalg.lstsq(Rn_s.T, d_t - d_s, rcond=None)[0]
     t_res = np.abs(Rn_s.T @ t_hat - (d_t - d_s))
     t_loss = np.linalg.norm(t_res)**2
-    #print("final translation loss: ", np.linalg.norm(Rn_s.T @ t_hat - (d_t - d_s))**2)
-    #print("translation residuals: ", Rn_s.T @ t_hat - (d_t - d_s))
+    print("final translation loss: ", np.linalg.norm(Rn_s.T @ t_hat - (d_t - d_s))**2)
+    print("translation residuals: ", Rn_s.T @ t_hat - (d_t - d_s))
     return t_hat, t_res, t_loss
 
 

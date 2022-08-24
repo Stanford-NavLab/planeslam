@@ -152,8 +152,10 @@ def mesh_cluster_pts(mesh, cluster):
         Points in cluster
         
     """
-    cluster_pts_idxs = np.unique(mesh.DT.simplices[cluster,:]) 
-    return mesh.P[cluster_pts_idxs,:]
+    # cluster_pts_idxs = np.unique(mesh.DT.simplices[cluster,:]) 
+    # return mesh.P[cluster_pts_idxs,:]
+    idxs, cts = np.unique(mesh.DT.simplices[cluster,:], return_counts=True)  # ignore points that only belong to 1 triangle in the cluster
+    return mesh.P[idxs[cts!=1],:]
 
 
 def plot_clusters(P, mesh, clusters):

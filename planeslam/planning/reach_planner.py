@@ -11,7 +11,7 @@ import planeslam.planning.params as params
 from planeslam.planning.LPM import LPM
 import planeslam.planning.utils as utils
 from planeslam.planning.zonotope import Zonotope
-from planeslam.planning.reachability import compute_PRS, generate_collision_constraints, check_collision_constraints
+from planeslam.planning.reachability import compute_FRS, generate_collision_constraints, generate_collision_constraints_FRS, check_collision_constraints
 
 
 class ReachPlanner:
@@ -60,7 +60,7 @@ class ReachPlanner:
         self.p_goal = np.zeros((params.N_DIM,1))
 
         # TODO: Store plane-based map and zonotope map
-        self.zono_map = None
+        self.plane_map = map.planes
         self.update_map(map)
 
         # Robot body (represented as zonotope)
@@ -82,6 +82,16 @@ class ReachPlanner:
             G = np.diff(plane.vertices[:3], axis=0).T / 2
             self.zono_map.append(Zonotope(c, G))
 
+
+    def get_nearby_obs_idxs(self):
+        """Use initial position to determine obstacles within collision check radius
+        
+        """
+        idxs = []
+        for i, plane in enumerate(self.plane_map):
+            if plane.dist_to_point(self.p_0.flatten()) < params.COLLISION_CHECK_RADIUS:
+                idxs.append(i)
+        return idxs
 
     # def check_plane_collision(self, positions, plane):
     #     """Check a sequence of positions against a single plane for collision.
@@ -147,7 +157,7 @@ class ReachPlanner:
     #     return False
 
 
-    def traj_opt(self, t_start_plan):
+    def traj_opt(self, A_con, b_con, t_start_plan):
         """Trajectory optimization (using sampling)
 
         Attempt to find a collision-free plan (v_peak) which brings the agent 
@@ -166,13 +176,6 @@ class ReachPlanner:
             Optimal v_peak or None if failed to find one
         
         """
-        # TODO: compute_PRS
-        # Compute FRS from initial conditions
-        FRS = compute_PRS(self.LPM, self.p_0, self.v_0, self.a_0)
-
-        # TODO: generation_collision_constraints
-        A_con, b_con = generate_collision_constraints(FRS, self.zono_map)
-
         # Generate potential v_peak samples
         V_peak = utils.rand_in_bounds(params.V_BOUNDS, params.N_PLAN_MAX)
         # Eliminate samples that exceed the max velocity and max delta from initial velocity
@@ -216,11 +219,22 @@ class ReachPlanner:
 
 
     # TODO: 
-    def traj_opt_solver(self):
+    def traj_opt_solver(self, A_con, b_con, t_start_plan):
         """Trajectory optimization using solver
         
-        
         """
+        from scipy.optimize import minimize, NonlinearConstraint
+
+        def cost(x, g):
+            return np.linalg.norm(x - g)
+        
+        def cons(x):
+            pass 
+
+        x0 = np.array([1,0])
+        g = np.array([2,2])
+        res = minimize(cost, x0, method='nelder-mead', args=g,
+                    options={'xatol': 1e-8, 'disp': True})
 
 
     def replan(self, initial_conditions):
@@ -242,8 +256,17 @@ class ReachPlanner:
         # Update initial conditions
         self.p_0, self.v_0, self.a_0 = initial_conditions
 
+        # Compute FRS from initial conditions
+        FRS = compute_FRS(self.LPM, self.p_0, self.v_0, self.a_0)
+
+        # Generate collision constraints
+        # NOTE: For now, only generate constraints for final element of FRS
+        nearby_obs = [self.zono_map[i] for i in self.get_nearby_obs_idxs()]
+        #A_con, b_con = generate_collision_constraints(FRS[-1], nearby_obs)
+        A_con, b_con = generate_collision_constraints_FRS(FRS, nearby_obs)
+
         # Find a new v_peak
-        v_peak = self.traj_opt(t_start_plan)
+        v_peak = self.traj_opt(A_con, b_con, t_start_plan)
 
         if v_peak is None:
             # Failed to find new plan

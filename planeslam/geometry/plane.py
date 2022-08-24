@@ -339,6 +339,7 @@ def merge_plane(mask, anchor_verts, old_verts, normal):
 
     else:
         print(mask, ", is not a valid mask")
+        return None
     
     return new_verts
 

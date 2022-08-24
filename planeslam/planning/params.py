@@ -17,7 +17,7 @@ DELTA_V_PEAK_MAX = 6.0  # Delta from initial velocity constraint
 # Planning
 R_GOAL_REACHED = 0.3  # [m] stop planning when within this dist of goal
 COLLISION_CHECK_RADIUS = 10  # [m] radius for which to check planes in collision
-N_PLAN_MAX = 10000  # Max number of plans to evaluate
+N_PLAN_MAX = 1000  # Max number of plans to evaluate
 
 # Reachability
 K_DIM = np.array([3, 4, 5])  # Trajectory parameter dimensions (row idxs) in FRS

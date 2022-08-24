@@ -79,8 +79,30 @@ def compute_PRS(LPM, p_0, v_0, a_0):
     return PRS
 
 
-def generate_collision_constraints(FRS, obs_map):
-    """Generate collision constraints
+def compute_FRS(LPM, p_0, v_0, a_0):
+    """Compute FRS
+    
+    FRS = PRS + ERS
+
+    For, we use a constant zonotope for ERS.
+    
+    """
+    N = len(LPM.time)
+    FRS = N * [None]
+    PRS = compute_PRS(LPM, p_0, v_0, a_0)
+
+    ERS_mag = 1.0
+    ERS = Zonotope(np.zeros((2*params.N_DIM,1)), np.vstack((ERS_mag * np.eye(params.N_DIM), np.zeros((params.N_DIM, params.N_DIM)))))
+
+    # Add ERS
+    for i, zono in enumerate(PRS):
+        FRS[i] = zono + ERS
+
+    return FRS
+
+
+def generate_collision_constraints_FRS(FRS, obs_map):
+    """Generate collision constraints FRS
 
     Given an FRS and a set of obstacles, generate halfspace constraints
     in trajectory parameter space that constrain safe trajectory parameters.
@@ -140,6 +162,43 @@ def generate_collision_constraints(FRS, obs_map):
     return A_con, b_con
 
 
+def generate_collision_constraints(z, obs_map):
+    """Generate collision constraints for single index of FRS
+    
+    """
+    A_con = []
+    b_con = []
+    # Extract center and generators of FRS
+    c = z.c[params.OBS_DIM]
+    G = z.G
+
+    # Find columns of G which are nonzero in k_dim ("k-sliceable")
+    # - this forms a linear map from the parameter space to workspace
+    k_col = list(set(np.nonzero(G[params.K_DIM,:])[1]))
+    k_slc_G = G[params.OBS_DIM][:,k_col]
+
+    # "non-k-sliceable" generators - have constant contribution regardless of chosen trajectory parameter
+    k_no_slc_G = G[params.OBS_DIM]
+    k_no_slc_G = np.delete(k_no_slc_G, k_col, axis=1)
+
+    # For each obstacle
+    for obs in obs_map:
+        # Get current obstacle
+        obs = obs.Z
+
+        # Obstacle is "buffered" by non-k-sliceable part of FRS
+        buff_obs_c = obs[:,0][:,None] - c
+        buff_obs_G = np.hstack((obs[:,1:], k_no_slc_G))
+        buff_obs_G = remove_zero_columns(buff_obs_G)
+        buff_obs = Zonotope(buff_obs_c, buff_obs_G)
+
+        A_obs, b_obs = buff_obs.halfspace()
+        A_con.append(A_obs @ k_slc_G)  # map constraints to be over coefficients of k_slc_G generators
+        b_con.append(b_obs)
+    
+    return A_con, b_con
+
+
 def check_collision_constraints(A_con, b_con, v_peak):
     """Check a trajectory parameter against halfspace collision constraints.
     
@@ -166,7 +225,42 @@ def check_collision_constraints(A_con, b_con, v_peak):
 
     for (A, b) in zip(A_con, b_con):
         c_tmp = A @ lambdas - b  # A*lambda - b <= 0 means inside unsafe set
-        c_tmp = max(c_tmp.flatten())  # Max of this <= 0 means inside unsafe set
+        c_tmp = c_tmp.max()  # Max of this <= 0 means inside unsafe set
         c = min(c, c_tmp)  # Find smallest max. If it's <= 0, then parameter is unsafe
     
     return c > 0
+
+
+# TODO: stack the As and bs
+def check_collision_constraints_vectorized(A_con, b_con, v_peak):
+    """Check a trajectory parameter against halfspace collision constraints.
+    
+    Parameters
+    ----------
+    A_con : list
+        List of halfspace constraint matrices
+    b_con : list
+        List of halfspace constraint vectors
+    v_peak : np.array (N_DIM x 1)
+        Trajectory parameter
+
+    Returns
+    -------
+    bool
+        True if the trajectory is safe, False if it results in collision
+
+    """
+    N = len(b_con[0])
+    A = np.vstack(A_con)
+    b = np.vstack(b_con)
+
+    # Get the coefficients of the parameter space zonotope for this parameter
+    # Assumes parameter space zonotope is centered at 0, v_max generators
+    lambdas = v_peak / params.V_MAX
+
+    c = A @ lambdas - b
+    c = c.reshape((-1,N))
+    c = np.max(c, axis=1)
+    c = np.min(c)
+    
+    return c > 0 

@@ -390,18 +390,25 @@ def planes_from_clusters(mesh, clusters, avg_normals):
     # Sort clusters from largest to smallest
     clusters, avg_normals = sort_mesh_clusters(clusters, avg_normals)
 
-    # Find ground plane - largest cluster with 
+    # Find ground plane - largest cluster with largest normal component in z
     # (assumes pitch/roll is < 45 degrees)
     normals_arr = np.asarray(avg_normals)
-    ground_normal = normals_arr[np.argmax(np.abs(normals_arr), axis=1)==2][0]
+    normal_dirs = np.argmax(np.abs(normals_arr), axis=1)  # normal directions (x,y,z)
+    ground_normal = normals_arr[normal_dirs==2][0]
 
     # Find extraction basis based on normals
     basis = np.zeros((3,3))
     basis[:,2] = ground_normal  # choose ground plane normal as z
-    dps = normals_arr @ basis[:,2]  # dot products
-    orth_idxs = np.nonzero(np.abs(dps) < 0.2)[0]  # indices of normals approximately orthonormal to z
-    basis[:,0] = normalize(orthogonal_projection(avg_normals[orth_idxs[0]], ground_normal[:,None]))    # choose orthonormal projection of first one as x
-    basis[:,1] = np.cross(basis[:,2], basis[:,0])  # y = cross(z, x)
+
+    # Find average of x normals
+    x_normals = normals_arr[normal_dirs==0]
+    # TODO: finish
+
+    # dps = normals_arr @ basis[:,2]  # dot products
+    # orth_idxs = np.nonzero(np.abs(dps) < 0.2)[0]  # indices of normals approximately orthonormal to z
+    # basis[:,0] = normalize(orthogonal_projection(avg_normals[orth_idxs[0]], ground_normal[:,None]))    # choose orthonormal projection of first one as x
+    # basis[:,1] = np.cross(basis[:,2], basis[:,0])  # y = cross(z, x)
+    
 
     for i, c in enumerate(clusters):  
         n = avg_normals[i][:,None]
