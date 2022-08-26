@@ -281,8 +281,8 @@ def solve_translation(R, n_s, d_s, d_t):
     t_hat = np.linalg.lstsq(Rn_s.T, d_t - d_s, rcond=None)[0]
     t_res = np.abs(Rn_s.T @ t_hat - (d_t - d_s))
     t_loss = np.linalg.norm(t_res)**2
-    print("final translation loss: ", np.linalg.norm(Rn_s.T @ t_hat - (d_t - d_s))**2)
-    print("translation residuals: ", Rn_s.T @ t_hat - (d_t - d_s))
+    #print("final translation loss: ", np.linalg.norm(Rn_s.T @ t_hat - (d_t - d_s))**2)
+    #print("translation residuals: ", Rn_s.T @ t_hat - (d_t - d_s))
     return t_hat, t_res, t_loss
 
 
@@ -562,10 +562,9 @@ def robust_GN_register(source, target, t_loss_thresh=1.0, max_faults=3):
     # Check translation loss
     while t_loss > t_loss_thresh and num_faults < max_faults:
         fault = np.argmax(t_res)
-        print("deleting ", correspondences[fault])
+        #print("deleting ", correspondences[fault])
         del correspondences[fault]
         # Redo registration
-        #print("re-running registration")
         R_hat, t_hat, t_loss, t_res = decoupled_GN_opt(source, target, correspondences)
         num_faults += 1
 
@@ -665,7 +664,7 @@ def loop_closure_register(source, target, source_pose, target_pose, t_loss_thres
     # Check translation loss
     while t_loss > t_loss_thresh and num_faults < max_faults:
         fault = np.argmax(t_res)
-        print("deleting ", correspondences[fault])
+        #print("deleting ", correspondences[fault])
         del correspondences[fault]
         # Redo registration
         #print("re-running registration")

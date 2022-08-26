@@ -48,8 +48,8 @@ class BoundedPlane:
         """
         # Check side lengths
         S = np.diff(vertices, axis=0, append=vertices[0][None,:])  # Side vectors
-        assert np.all(np.isclose(S[0], -S[2])) and np.all(np.isclose(S[1], -S[3])), \
-            "Side lengths from vertices given to BoundedPlane constructor are not equal "
+        # assert np.all(np.isclose(S[0], -S[2])) and np.all(np.isclose(S[1], -S[3])), \
+        #     "Side lengths from vertices given to BoundedPlane constructor are not equal "
 
         # Form the basis vectors
         basis_x = normalize(S[0])  # x is v2 - v1 
@@ -58,8 +58,8 @@ class BoundedPlane:
         self.basis = np.vstack((basis_x, basis_y, basis_z)).T
 
         # Coplanarity check
-        assert np.all(np.isclose(np.cross(basis_z, np.cross(-S[1], S[2])), 0)), \
-            "Vertices given to BoundedPlane constructor are not coplanar"
+        # assert np.all(np.isclose(np.cross(basis_z, np.cross(-S[1], S[2])), 0)), \
+        #     "Vertices given to BoundedPlane constructor are not coplanar"
 
         self.vertices = vertices
         self.normal = basis_z[:,None]  # Normal is z

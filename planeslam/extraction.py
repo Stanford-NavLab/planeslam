@@ -401,13 +401,14 @@ def planes_from_clusters(mesh, clusters, avg_normals):
     basis[:,2] = ground_normal  # choose ground plane normal as z
 
     # Find average of x normals
-    x_normals = normals_arr[normal_dirs==0]
-    # TODO: finish
+    # x_normals = normals_arr[normal_dirs==0]
+    # avg_x_normal = np.mean(np.sign(x_normals[:,0])[:,None] * x_normals, axis=0)
+    # basis[:,0] = normalize(orthogonal_projection(avg_x_normal, ground_normal[:,None]))    # orthonormal projection onto ground plane
 
-    # dps = normals_arr @ basis[:,2]  # dot products
-    # orth_idxs = np.nonzero(np.abs(dps) < 0.2)[0]  # indices of normals approximately orthonormal to z
-    # basis[:,0] = normalize(orthogonal_projection(avg_normals[orth_idxs[0]], ground_normal[:,None]))    # choose orthonormal projection of first one as x
-    # basis[:,1] = np.cross(basis[:,2], basis[:,0])  # y = cross(z, x)
+    dps = normals_arr @ basis[:,2]  # dot products
+    orth_idxs = np.nonzero(np.abs(dps) < 0.2)[0]  # indices of normals approximately orthonormal to z
+    basis[:,0] = normalize(orthogonal_projection(avg_normals[orth_idxs[0]], ground_normal[:,None]))    # choose orthonormal projection of first one as x
+    basis[:,1] = np.cross(basis[:,2], basis[:,0])  # y = cross(z, x)
     
 
     for i, c in enumerate(clusters):  
