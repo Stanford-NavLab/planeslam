@@ -10,10 +10,10 @@ import time
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-from planeslam.geometry.util import quat_to_rot_mat
+from planeslam.geometry.util import quat_to_R
 from planeslam.general import plot_3D_setup, color_legend, NED_to_ENU
 import planeslam.io as io
-from planeslam.scan import pc_extraction
+from planeslam.scan import pc_to_scan
 from planeslam.registration import get_correspondences
 from planeslam.clustering import mesh_cluster_pts
 
@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     #merged = scans[0]
     start_time = time.time()
-    meshes[0], clusters[0], scans[0] = pc_extraction(PCs[0])
+    scans[0] = pc_to_scan(PCs[0])
     print("extraction time: ", time.time() - start_time)
     
     print("Beginning visualization...")
@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
         print("Extracting...")
         start_time = time.time()
-        meshes[i+1], clusters[i+1], scans[i+1] = pc_extraction(PCs[i+1])
+        scans[i+1] = pc_to_scan(PCs[i+1])
         print("extraction time: ", time.time() - start_time)
 
         # Clear figure
