@@ -312,6 +312,8 @@ class Scan:
                     vertices += list(new_plane[~merge_mask,:])
                     update_idxs.append(i+1)
                     update_planes.append(BoundedPlane(new_plane))
+                else:
+                    vertices += list(plane_pts)
             else:
                 vertices += list(plane_pts)
 
