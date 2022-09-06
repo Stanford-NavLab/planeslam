@@ -1,8 +1,8 @@
 import numpy as np
 
 # Timing parameters
-T_REPLAN = 10.0  # [s] amount of time between replans
-T_PLAN = 10.0  # [s] amount of time allotted for planning itself 
+T_REPLAN = 0.5  # [s] amount of time between replans
+T_PLAN = 0.4  # [s] amount of time allotted for planning itself 
               #     (allow buffer for actual tranmission of plan)
 
 # System
@@ -15,7 +15,7 @@ V_MAX_NORM = 10.0  # L2 velocity constraints
 DELTA_V_PEAK_MAX = 6.0  # Delta from initial velocity constraint
 
 # Planning
-R_GOAL_REACHED = 0.3  # [m] stop planning when within this dist of goal
+R_GOAL_REACHED = 0.5  # [m] stop planning when within this dist of goal
 COLLISION_CHECK_RADIUS = 10  # [m] radius for which to check planes in collision
 N_PLAN_MAX = 1000  # Max number of plans to evaluate
 
