@@ -79,8 +79,8 @@ def find_cluster_boundary(cluster, mesh):
 
     Returns
     -------
-    bd_verts : set
-        Set containing indices of vertices on boundary of cluster
+    bd_verts : list
+        list containing indices of vertices on boundary of cluster
         
     """
     bd_verts = set()  
@@ -88,17 +88,17 @@ def find_cluster_boundary(cluster, mesh):
         tri_nbrs = set(mesh.tri_nbr_dict[tri_idx]) & set(cluster)
         if len(tri_nbrs) == 2:
             # 2 vertices not shared by neighbors are boundary points
-            nbr_verts = mesh.simplices[list(tri_nbrs),:]
+            nbr_verts = mesh.DT.simplices[list(tri_nbrs),:]
             vals, counts = np.unique(nbr_verts, return_counts=True)
-            bd_nbr_verts = set(mesh.simplices[tri_idx,:])
+            bd_nbr_verts = set(mesh.DT.simplices[tri_idx,:])
             if 2 in counts:
                 bd_nbr_verts.remove(vals[counts==2][0])
             bd_verts.update(bd_nbr_verts)
         elif len(tri_nbrs) == 1:
             # All 3 vertices are boundary points
-            bd_verts.update(mesh.simplices[tri_idx])
+            bd_verts.update(mesh.DT.simplices[tri_idx])
         
-    return bd_verts
+    return list(bd_verts)
 
 
 def sort_mesh_clusters(clusters, normals=None, reverse=True):

@@ -87,7 +87,7 @@ class Scan:
         # self.center += t[:,None]
     
 
-    def plot_trace(self, show_normals=False, normal_scale=5, colors=None):
+    def plot_trace(self, show_normals=False, normal_scale=5, colors=None, showlegend=True):
         """Generate plotly plot trace
 
         TODO: sometimes plane mesh is not plotted properly, may be due to ordering of vertices
@@ -102,7 +102,7 @@ class Scan:
         if colors is None:
             colors = px.colors.qualitative.Plotly
         for i, p in enumerate(self.planes):
-            data += p.plot_trace(name=str(i), color=colors[i%len(colors)])
+            data += p.plot_trace(name=str(i), color=colors[i%len(colors)], showlegend=showlegend)
 
         # Plot normal vectors
         if show_normals:
@@ -180,7 +180,8 @@ class Scan:
 
             for j, q in enumerate(Q): 
                 # Check if 2 planes are approximately coplanar
-                if np.linalg.norm(p.normal - q.normal) < norm_thresh:
+                #if np.linalg.norm(p.normal - q.normal) < norm_thresh:
+                if np.dot(p.normal, q.normal) > 0.95:  # 18 degrees
                     # Check plane to plane distance    
                     if plane_to_plane_dist(p, q) < dist_thresh:
                         # Project q onto p's basis
