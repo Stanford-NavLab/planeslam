@@ -7,7 +7,7 @@ For Windows, may not work on other OSes.
 
 Clone the GitHub repository:
 
-    git clone https://github.com/adamdai/planeslam.git
+    git clone https://github.com/Stanford-NavLab/planeslam.git
 
 Create conda environment from `.yml` file:
 
