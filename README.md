@@ -2,6 +2,8 @@
 
 LiDAR-based Simultaneous Localization and Mapping using Plane Features and Maps
 
+Paper: https://arxiv.org/abs/2209.08248
+
 ## Setup
 For Windows, may not work on other OSes.
 
