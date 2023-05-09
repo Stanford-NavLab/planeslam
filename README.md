@@ -2,7 +2,7 @@
 
 LiDAR-based Simultaneous Localization and Mapping using Plane Features and Maps
 
-![](https://github.com/Stanford-NavLab/planeslam/rover_planeslam.gif)
+![](https://github.com/Stanford-NavLab/planeslam/blob/main/rover_planeslam.gif)
 
 Paper: https://arxiv.org/abs/2209.08248
 
