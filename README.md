@@ -6,6 +6,15 @@ LiDAR-based Simultaneous Localization and Mapping using Plane Features and Maps
 
 Paper: https://arxiv.org/abs/2209.08248
 
+```
+@article{dai2022planeslam,
+  title={PlaneSLAM: Plane-based LiDAR SLAM for Motion Planning in Structured 3D Environments},
+  author={Dai, Adam and Lund, Greg and Gao, Grace},
+  journal={arXiv preprint arXiv:2209.08248},
+  year={2022}
+}
+```
+
 ## Setup
 For Windows, may not work on other OSes.
 
