@@ -15,6 +15,8 @@ Paper: https://arxiv.org/abs/2209.08248
 }
 ```
 
+Link to data: https://drive.google.com/drive/folders/1CuLkdZdWu234hKSdyNIMD6GkiZzECwQz?usp=sharing
+
 ## Setup
 For Windows, may not work on other OSes.
 
